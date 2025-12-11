@@ -1,8 +1,8 @@
 import { ResponsivePie } from '@nivo/pie'
 import { ResponsiveSankey } from '@nivo/sankey'
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc, getDocs, setDoc } from 'firebase/firestore'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ComposedChart, Line, ReferenceLine } from 'recharts'
 import DebtPaidOffModal from './DebtPaidOffModal.jsx'
 
 // Helper to consistently handle transaction dates
@@ -80,6 +80,8 @@ function Dashboard({
   const [budgetTab, setBudgetTab] = useState('budget') // 'budget' or 'forecast'
   const [liabilitiesTimeframe, setLiabilitiesTimeframe] = useState('1month') // '1month', '3months', '6months', '1year'
   const [reportsTab, setReportsTab] = useState('cashflow') // 'cashflow', 'spending', 'income'
+  const [rightPanelTab, setRightPanelTab] = useState('summary')
+
   const [showAllCategories, setShowAllCategories] = useState(false)
   const [savingsGoals, setSavingsGoals] = useState([])
   const [showGoalForm, setShowGoalForm] = useState(false)
@@ -95,7 +97,7 @@ function Dashboard({
   const [showEditAmountModal, setShowEditAmountModal] = useState(false)
   const [editAmountGoalId, setEditAmountGoalId] = useState(null)
   const [editAmount, setEditAmount] = useState('')
-  const [expandedSpendingTypes, setExpandedSpendingTypes] = useState({}) // { fixed: true/false, flexible: true/false }
+  const [expandedSpendingTypes, setExpandedSpendingTypes] = useState({ income: true, expenses: true, fixed: true, flexible: true }) // { income, expenses, fixed, flexible }
   const [showDebtPayoffComparison, setShowDebtPayoffComparison] = useState(false)
   const [selectedPayoffMethod, setSelectedPayoffMethod] = useState(null) // 'snowball' or 'avalanche' (for modal selection)
   const [chosenPayoffMethod, setChosenPayoffMethod] = useState(null) // 'snowball' or 'avalanche' (persisted choice)
@@ -106,6 +108,203 @@ function Dashboard({
   const [paidOffDebts, setPaidOffDebts] = useState({}) // { debtId: true/false }
   const [showDebtPaidOffModal, setShowDebtPaidOffModal] = useState(false)
   const [celebratingDebtName, setCelebratingDebtName] = useState('')
+
+  const [showUnbudgetedFixed, setShowUnbudgetedFixed] = useState(false)
+  const [showUnbudgetedFlexible, setShowUnbudgetedFlexible] = useState(false)
+  const [showUnbudgetedIncome, setShowUnbudgetedIncome] = useState(false)
+  const [fixedBudgetInput, setFixedBudgetInput] = useState('')
+  const [flexibleBudgetInput, setFlexibleBudgetInput] = useState('')
+  const [flexibleBudgetEdits, setFlexibleBudgetEdits] = useState({}) // { [category]: number|string }
+  const [fixedBudgetEdits, setFixedBudgetEdits] = useState({}) // { [category]: number|string }
+  const [incomeBudgetEdits, setIncomeBudgetEdits] = useState({}) // { [category]: number|string }
+
+  const getCategoryEmoji = (category) => {
+    const map = {
+      // Spending — Fixed
+      'Rent': '🏠',
+      'Mortgage': '🏠',
+      'HOA': '🏘️',
+      'Property Tax': '🧾',
+      'Bills & Utilities': '💡',
+      'Utilities': '💡',
+      'Electricity': '💡',
+      'Water': '🚰',
+      'Sewer': '🚽',
+      'Natural Gas': '🔥',
+      'Gas Bill': '🔥',
+      'Internet': '🌐',
+      'Cable': '📺',
+      'Internet & Cable': '📡',
+      'Phone': '📱',
+      'Mobile Phone': '📱',
+      'Cell Phone': '📱',
+      'Subscriptions': '🔁',
+      'Streaming': '📺',
+      'Insurance': '🛡️',
+      'Auto Insurance': '🛡️',
+      'Home Insurance': '🛡️',
+      'Health Insurance': '🏥',
+      'Life Insurance': '🛡️',
+      'Car Payment': '🚗',
+      'Auto Loan': '🚗',
+      'Loan Payment': '💳',
+      'Student Loan': '🎓',
+      'Debt Payment': '💳',
+      'Childcare': '👶',
+      'Daycare': '👶',
+      'Tuition': '🎓',
+      'Gym': '🏋️',
+      'Medical': '🏥',
+      'Doctor': '🩺',
+      'Dentist': '🦷',
+      'Prescriptions': '💊',
+      'Home': '🏠',
+      'Home Improvement': '🛠️',
+      'Maintenance': '🛠️',
+      'Car Maintenance': '🛠️',
+      'Parking': '🅿️',
+      'Public Transit': '🚇',
+      'Ride Share': '🚕',
+      'Uber': '🚕',
+      'Lyft': '🚕',
+      'Fuel': '⛽',
+      'Gasoline': '⛽',
+      'Garbage': '🗑️',
+
+      // Spending — Flexible
+      'Restaurants & Bars': '🍽️',
+      'Dining Out': '🍽️',
+      'Fast Food': '🍔',
+      'Coffee': '☕',
+      'Alcohol': '🍺',
+      'Bars': '🍻',
+      'Groceries': '🍎',
+      'Shopping': '🛍️',
+      'Clothing': '👕',
+      'Electronics': '💻',
+      'Entertainment & Recreation': '🎭',
+      'Recreation': '🏃',
+      'Travel': '✈️',
+      'Flights': '✈️',
+      'Hotels': '🏨',
+      'Vacation': '🏝️',
+      'Health & Fitness': '💪',
+      'Personal Care': '🧴',
+      'Beauty': '💅',
+      'Hair': '💇',
+      'Gifts & Donations': '🎁',
+      'Donations': '🙏',
+      'Pets': '🐾',
+      'Investments': '📈',
+      'Business': '💼',
+      'Taxes': '🧾',
+      'Gas': '⛽',
+      'Miscellaneous': '🧰',
+      'Other': '➕',
+      'Uncategorized': '❓',
+
+      // Income
+      'Paychecks': '💼',
+      'Salary': '💼',
+      'Bonus': '🎉',
+      'Other Income': '💸',
+      'Interest': '🏦',
+      'Investment Income': '📈',
+      'Business Income': '🏢',
+      'Rental Income': '🏠',
+      'Dividends': '💹',
+      'Refund': '💵',
+      'Reimbursement': '💵'
+    }
+    return map[category] || '🔹'
+  }
+
+
+  // Monthly per-category budgets (Firestore)
+  const [budgetsFlexible, setBudgetsFlexible] = useState({}) // { [category]: number }
+  const [budgetsFixed, setBudgetsFixed] = useState({}) // { [category]: number }
+  const [budgetsIncome, setBudgetsIncome] = useState({}) // { [category]: number }
+  const [budgetsMonthKey, setBudgetsMonthKey] = useState('')
+
+  useEffect(() => {
+    if (!db || !userId) return
+    const now = new Date()
+    const mk = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    setBudgetsMonthKey(mk)
+    ;(async () => {
+      try {
+        const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+        const catsRef = collection(db, `artifacts/${appId}/users/${userId}/budgets/${mk}/categories`)
+        const snap = await getDocs(catsRef)
+        const fixed = {}
+        const flexible = {}
+        const income = {}
+        snap.forEach(d => {
+          const data = d.data() || {}
+          const category = data.category || decodeURIComponent(d.id)
+          const amount = typeof data.amount === 'number' ? data.amount : parseFloat(data.amount) || 0
+          const spendingType = data.spendingType || 'flexible'
+          if (spendingType === 'fixed') fixed[category] = amount
+          else if (spendingType === 'income') income[category] = amount
+          else flexible[category] = amount
+        })
+        setBudgetsFixed(fixed)
+        setBudgetsFlexible(flexible)
+        setBudgetsIncome(income)
+      } catch (e) {
+        console.error('Error loading budgets:', e)
+      }
+    })()
+  }, [db, userId])
+
+  const saveFlexibleBudget = async (category, amount) => {
+    try {
+      if (!db || !userId) return
+      const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+      const mk = budgetsMonthKey || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+      const ref = doc(db, `artifacts/${appId}/users/${userId}/budgets/${mk}/categories/${encodeURIComponent(category)}`)
+      const numeric = Number(amount) || 0
+      await setDoc(ref, { category, amount: numeric, spendingType: 'flexible', updatedAt: serverTimestamp() }, { merge: true })
+      setBudgetsFlexible(prev => ({ ...prev, [category]: numeric }))
+      showNotification && showNotification('Budget saved', 'success')
+    } catch (e) {
+      console.error('Error saving budget:', e)
+      showNotification && showNotification('Error saving budget', 'error')
+    }
+  }
+  const saveFixedBudget = async (category, amount) => {
+    try {
+      if (!db || !userId) return
+      const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+      const mk = budgetsMonthKey || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+      const ref = doc(db, `artifacts/${appId}/users/${userId}/budgets/${mk}/categories/${encodeURIComponent(category)}`)
+      const numeric = Number(amount) || 0
+      await setDoc(ref, { category, amount: numeric, spendingType: 'fixed', updatedAt: serverTimestamp() }, { merge: true })
+      setBudgetsFixed(prev => ({ ...prev, [category]: numeric }))
+      showNotification && showNotification('Budget saved', 'success')
+    } catch (e) {
+      console.error('Error saving budget:', e)
+      showNotification && showNotification('Error saving budget', 'error')
+    }
+  }
+
+  const saveIncomeBudget = async (category, amount) => {
+    try {
+      if (!db || !userId) return
+      const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+      const mk = budgetsMonthKey || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+      const ref = doc(db, `artifacts/${appId}/users/${userId}/budgets/${mk}/categories/${encodeURIComponent(category)}`)
+      const numeric = Number(amount) || 0
+      await setDoc(ref, { category, amount: numeric, spendingType: 'income', updatedAt: serverTimestamp() }, { merge: true })
+      setBudgetsIncome(prev => ({ ...prev, [category]: numeric }))
+      showNotification && showNotification('Budget saved', 'success')
+    } catch (e) {
+      console.error('Error saving budget:', e)
+      showNotification && showNotification('Error saving budget', 'error')
+    }
+  }
+
+
 
 	// Track the previously selected day to detect when it changes
 	const prevSelectedDayRef = useRef(null)
@@ -615,20 +814,39 @@ function Dashboard({
       const monthKey = `${transYear}-${String(transMonth).padStart(2, '0')}`
 
       if (monthlyData[monthKey]) {
+        const amt = Number(transaction.amount) || 0
         if (transaction.type === 'income') {
-          monthlyData[monthKey].income += transaction.amount
+          monthlyData[monthKey].income += Math.abs(amt)
         } else if (transaction.type === 'expense' || transaction.type === 'debt') {
-          monthlyData[monthKey].expense += transaction.amount
+          monthlyData[monthKey].expense += Math.abs(amt)
         }
       }
     })
 
     // Calculate net for each month
-    return Object.values(monthlyData).map(month => ({
-      ...month,
-      net: month.income - month.expense
-    }))
+    return Object.values(monthlyData).map(month => {
+      const income = Math.round((month.income || 0) * 100) / 100
+      const expense = Math.round((month.expense || 0) * 100) / 100
+      return {
+        ...month,
+        income,
+        expense,
+        net: income - expense,
+        expenseNeg: -expense,
+      }
+    })
   }, [transactions, cashflowYear])
+
+  // Y-axis: symmetric domain in $1K steps and explicit ticks to avoid odd values/duplicates
+  const cashflowScale = useMemo(() => {
+    if (!monthlyCashflowData || monthlyCashflowData.length === 0) return { domain: [0, 0], ticks: [0] }
+    const maxAbsRaw = monthlyCashflowData.reduce((m, d) => Math.max(m, Math.abs(d.income || 0), Math.abs(d.expense || 0)), 0)
+    const maxAbs = Math.ceil(maxAbsRaw / 1000) * 1000 // round up to next $1K
+    const domain = [-maxAbs, maxAbs]
+    const ticks = []
+    for (let t = -maxAbs; t <= maxAbs; t += 1000) ticks.push(t)
+    return { domain, ticks }
+  }, [monthlyCashflowData])
 
   // Category breakdown for expenses
   const categoryBreakdown = useMemo(() => {
@@ -692,13 +910,18 @@ function Dashboard({
       const transMonthKey = `${transDate.getFullYear()}-${String(transDate.getMonth() + 1).padStart(2, '0')}`
 
       if (transMonthKey === monthKey) {
+        const amt = Number(transaction.amount) || 0
         if (transaction.type === 'income') {
-          totalIncome += transaction.amount
+          totalIncome += Math.abs(amt)
         } else if (transaction.type === 'expense' || transaction.type === 'debt') {
-          totalExpenses += transaction.amount
+          totalExpenses += Math.abs(amt)
         }
       }
     })
+
+    // round to cents to avoid tiny float residues
+    totalIncome = Math.round(totalIncome * 100) / 100
+    totalExpenses = Math.round(totalExpenses * 100) / 100
 
     return {
       income: totalIncome,
@@ -758,59 +981,120 @@ function Dashboard({
 
     const fixedExpenses = {}
     const flexibleExpenses = {}
-    let totalFixedBudget = 0
-    let totalFixedActual = 0
-    let totalFlexibleBudget = 0
-    let totalFlexibleActual = 0
 
+    // Build actuals from transactions for current month
     transactions.forEach(transaction => {
-	      const transDate = getCreatedAtDate(transaction.createdAt)
-	      if (!transDate) return
+      const transDate = getCreatedAtDate(transaction.createdAt)
+      if (!transDate) return
       const transMonthKey = `${transDate.getFullYear()}-${String(transDate.getMonth() + 1).padStart(2, '0')}`
+      if (transMonthKey !== monthKey || transaction.type !== 'expense') return
 
-      if (transMonthKey === monthKey && transaction.type === 'expense') {
-        const category = transaction.category || 'Uncategorized'
-        const spendingType = transaction.spendingType || 'flexible'
-        const transactionBudget = transaction.budget ? parseFloat(transaction.budget) : 0
-
-        if (spendingType === 'fixed') {
-          if (!fixedExpenses[category]) {
-            fixedExpenses[category] = { category, budget: 0, actual: 0 }
-          }
-          fixedExpenses[category].budget += transactionBudget
-          fixedExpenses[category].actual += transaction.amount
-          totalFixedBudget += transactionBudget
-          totalFixedActual += transaction.amount
-        } else {
-          if (!flexibleExpenses[category]) {
-            flexibleExpenses[category] = { category, budget: 0, actual: 0 }
-          }
-          flexibleExpenses[category].budget += transactionBudget
-          flexibleExpenses[category].actual += transaction.amount
-          totalFlexibleBudget += transactionBudget
-          totalFlexibleActual += transaction.amount
-        }
+      const category = transaction.category || 'Uncategorized'
+      const spendingType = transaction.spendingType || 'flexible'
+      if (spendingType === 'fixed') {
+        if (!fixedExpenses[category]) fixedExpenses[category] = { category, budget: 0, actual: 0 }
+        fixedExpenses[category].actual += transaction.amount
+      } else {
+        if (!flexibleExpenses[category]) flexibleExpenses[category] = { category, budget: 0, actual: 0 }
+        flexibleExpenses[category].actual += transaction.amount
       }
     })
 
-    // Filter to only include items with budgets and recalculate totals
-    const fixedWithBudget = Object.values(fixedExpenses).filter(item => item.budget > 0).sort((a, b) => b.actual - a.actual)
-    const flexibleWithBudget = Object.values(flexibleExpenses).filter(item => item.budget > 0).sort((a, b) => b.actual - a.actual)
+    // Merge saved budgets (Firestore) - override any budget derived from transactions
+    Object.entries(budgetsFixed || {}).forEach(([category, amount]) => {
+      if (!fixedExpenses[category]) fixedExpenses[category] = { category, budget: 0, actual: 0 }
+      fixedExpenses[category].budget = amount || 0
+    })
+    Object.entries(budgetsFlexible || {}).forEach(([category, amount]) => {
+      if (!flexibleExpenses[category]) flexibleExpenses[category] = { category, budget: 0, actual: 0 }
+      flexibleExpenses[category].budget = amount || 0
+    })
 
-    const totalFixedBudgetWithBudget = fixedWithBudget.reduce((sum, item) => sum + item.budget, 0)
-    const totalFixedActualWithBudget = fixedWithBudget.reduce((sum, item) => sum + item.actual, 0)
-    const totalFlexibleBudgetWithBudget = flexibleWithBudget.reduce((sum, item) => sum + item.budget, 0)
-    const totalFlexibleActualWithBudget = flexibleWithBudget.reduce((sum, item) => sum + item.actual, 0)
+    // Build arrays (all items)
+    const fixedAll = Object.values(fixedExpenses).sort((a, b) => b.actual - a.actual)
+    const flexibleAll = Object.values(flexibleExpenses).sort((a, b) => b.actual - a.actual)
+
+    // Filter to only include items with budgets and recalculate totals
+    const fixedWithBudget = fixedAll.filter(item => (item.budget || 0) > 0)
+    const flexibleWithBudget = flexibleAll.filter(item => (item.budget || 0) > 0)
+
+    const totalFixedBudgetWithBudget = fixedWithBudget.reduce((sum, item) => sum + (item.budget || 0), 0)
+    const totalFixedActualWithBudget = fixedWithBudget.reduce((sum, item) => sum + (item.actual || 0), 0)
+    const totalFlexibleBudgetWithBudget = flexibleWithBudget.reduce((sum, item) => sum + (item.budget || 0), 0)
+    const totalFlexibleActualWithBudget = flexibleWithBudget.reduce((sum, item) => sum + (item.actual || 0), 0)
+
+    const totalFixedBudgetAll = fixedAll.reduce((sum, item) => sum + (item.budget || 0), 0)
+    const totalFixedActualAll = fixedAll.reduce((sum, item) => sum + (item.actual || 0), 0)
+    const totalFlexibleBudgetAll = flexibleAll.reduce((sum, item) => sum + (item.budget || 0), 0)
+    const totalFlexibleActualAll = flexibleAll.reduce((sum, item) => sum + (item.actual || 0), 0)
+
+    // Unbudgeted summary (across fixed + flexible)
+    const fixedUnbudgeted = fixedAll.filter(item => (item.budget || 0) <= 0)
+    const flexibleUnbudgeted = flexibleAll.filter(item => (item.budget || 0) <= 0)
+    const unbudgetedTotals = {
+      count: fixedUnbudgeted.length + flexibleUnbudgeted.length,
+      budget: fixedUnbudgeted.reduce((s, i) => s + (i.budget || 0), 0) + flexibleUnbudgeted.reduce((s, i) => s + (i.budget || 0), 0),
+      actual: fixedUnbudgeted.reduce((s, i) => s + (i.actual || 0), 0) + flexibleUnbudgeted.reduce((s, i) => s + (i.actual || 0), 0)
+    }
 
     return {
       fixed: fixedWithBudget,
       flexible: flexibleWithBudget,
+      fixedAll,
+      flexibleAll,
       totalFixedBudget: totalFixedBudgetWithBudget,
       totalFixedActual: totalFixedActualWithBudget,
       totalFlexibleBudget: totalFlexibleBudgetWithBudget,
-      totalFlexibleActual: totalFlexibleActualWithBudget
+      totalFlexibleActual: totalFlexibleActualWithBudget,
+      totalsAll: {
+        totalFixedBudgetAll,
+        totalFixedActualAll,
+        totalFlexibleBudgetAll,
+        totalFlexibleActualAll
+      },
+      unbudgetedTotals
     }
-  }, [transactions])
+  }, [transactions, budgetsFlexible, budgetsFixed])
+  // Income breakdown (budget vs actual) for current month
+  const incomeBudgetBreakdown = useMemo(() => {
+    const currentMonth = new Date()
+    const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`
+
+    const incomes = {}
+
+    // Actuals from transactions
+    transactions.forEach(t => {
+      const d = getCreatedAtDate(t.createdAt)
+      if (!d) return
+      const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      if (mk !== monthKey || t.type !== 'income') return
+      const category = t.category || 'Other Income'
+      if (!incomes[category]) incomes[category] = { category, budget: 0, actual: 0 }
+      incomes[category].actual += t.amount
+    })
+
+    // Merge saved budgets
+    Object.entries(budgetsIncome || {}).forEach(([category, amount]) => {
+      if (!incomes[category]) incomes[category] = { category, budget: 0, actual: 0 }
+      incomes[category].budget = amount || 0
+    })
+
+    const incomeAll = Object.values(incomes).sort((a, b) => b.actual - a.actual)
+    const incomeWithBudget = incomeAll.filter(item => (item.budget || 0) > 0)
+
+    const totalIncomeBudgetAll = incomeAll.reduce((sum, item) => sum + (item.budget || 0), 0)
+    const totalIncomeActualAll = incomeAll.reduce((sum, item) => sum + (item.actual || 0), 0)
+    const totalIncomeBudget = incomeWithBudget.reduce((sum, item) => sum + (item.budget || 0), 0)
+    const totalIncomeActual = incomeWithBudget.reduce((sum, item) => sum + (item.actual || 0), 0)
+
+    return {
+      income: incomeWithBudget,
+      incomeAll,
+      totalsAll: { totalIncomeBudgetAll, totalIncomeActualAll },
+      totals: { totalIncomeBudget, totalIncomeActual }
+    }
+  }, [transactions, budgetsIncome])
+
 
   // Debt Avalanche Calculator - sorted by interest rate (highest first)
   const debtAvalancheData = useMemo(() => {
@@ -2554,9 +2838,12 @@ function Dashboard({
 
                 {monthlyCashflowData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
+                    <ComposedChart
                       data={monthlyCashflowData}
                       margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+                      barCategoryGap="70%"
+                      barGap={0}
+                      stackOffset="sign"
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                       <XAxis
@@ -2569,23 +2856,43 @@ function Dashboard({
                         stroke="#9ca3af"
                         style={{ fontSize: '12px' }}
                         tick={{ fill: '#9ca3af' }}
+                        domain={cashflowScale.domain}
+                        ticks={cashflowScale.ticks}
+                        tickFormatter={(v) => {
+                          if (!isFinite(v)) return '$0'
+                          if (v === 0) return '$0'
+                          const sign = v < 0 ? '-' : ''
+                          return sign + '$' + Math.abs(v / 1000).toFixed(0) + 'K'
+                        }}
                       />
+                      <ReferenceLine y={0} stroke="#111827" strokeWidth={1} />
                       <Tooltip
                         contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                        formatter={(value) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                        formatter={(value, name) => {
+                          const label = name === 'income' ? 'Income' : name === 'expenseNeg' ? 'Expenses' : 'Net'
+                          const num = Number(value)
+                          const abs = Math.abs(num).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          const sign = name === 'expenseNeg' ? '-' : (num < 0 ? '-' : '')
+                          return [sign + '$' + abs, label]
+                        }}
                         labelFormatter={(label) => `Month: ${label}`}
                       />
                       <Bar
                         dataKey="income"
-                        fill="#10b981"
+                        fill="#30a46c"
                         radius={[4, 4, 0, 0]}
+                        stackId="cf"
+                        barSize={12}
                       />
                       <Bar
-                        dataKey="expense"
-                        fill="#ef4444"
-                        radius={[4, 4, 0, 0]}
+                        dataKey="expenseNeg"
+                        fill="#e5484d"
+                        radius={[0, 0, 4, 4]}
+                        stackId="cf"
+                        barSize={12}
                       />
-                    </BarChart>
+                      <Line type="monotone" dataKey="net" stroke="#111827" strokeWidth={2} dot={false} />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-64 flex items-center justify-center text-gray-400">
@@ -2612,14 +2919,19 @@ function Dashboard({
 
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-gray-600 text-xs font-medium mb-1">TOTAL SAVINGS</p>
-                  <h3 className={`text-2xl font-bold ${currentMonthStats.net >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                    ${Math.abs(currentMonthStats.net).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <h3 className={`text-2xl font-bold ${currentMonthStats.net < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                    {(() => {
+                      const net = currentMonthStats.net || 0
+                      const abs = Math.abs(net).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                      const sign = net < 0 ? '-' : ''
+                      return sign + '$' + abs
+                    })()}
                   </h3>
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-gray-600 text-xs font-medium mb-1">SAVINGS RATE</p>
-                  <h3 className="text-2xl font-bold text-purple-600">
+                  <h3 className="text-2xl font-bold text-gray-900">
                     {currentMonthStats.savingsRate}%
                   </h3>
                 </div>
@@ -2717,80 +3029,13 @@ function Dashboard({
           {/* Budget Section - Savings Goals */}
           {activeSection === 'budget' && (
             <div className="space-y-6">
-              {/* Monthly Net Income Summary */}
-              {(() => {
-                const currentMonth = new Date()
-                const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`
-
-                let totalIncome = 0
-                let totalExpenses = 0
-
-                transactions.forEach(transaction => {
-	                  const transDate = getCreatedAtDate(transaction.createdAt)
-	                  if (!transDate) return
-                  const transMonthKey = `${transDate.getFullYear()}-${String(transDate.getMonth() + 1).padStart(2, '0')}`
-
-                  if (transMonthKey === monthKey) {
-                    if (transaction.type === 'income') {
-                      totalIncome += transaction.amount
-                    } else if (transaction.type === 'expense' || transaction.type === 'debt') {
-                      totalExpenses += transaction.amount
-                    }
-                  }
-                })
-
-                const netIncome = totalIncome - totalExpenses
-                const totalGoalAllocation = savingsGoals.reduce((sum, goal) => sum + goal.monthlyAllocation, 0)
-                const remainingBudget = netIncome - totalGoalAllocation
-
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Monthly Income */}
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-lg border border-green-200 p-6">
-                      <p className="text-sm font-medium text-green-700 mb-2">Monthly Income</p>
-                      <h3 className="text-3xl font-bold text-green-900">
-                        ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </h3>
-                    </div>
-
-                    {/* Monthly Expenses */}
-                    <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl shadow-lg border border-red-200 p-6">
-                      <p className="text-sm font-medium text-red-700 mb-2">Monthly Expenses</p>
-                      <h3 className="text-3xl font-bold text-red-900">
-                        ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </h3>
-                    </div>
-
-                    {/* Net Income */}
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg border border-blue-200 p-6">
-                      <p className="text-sm font-medium text-blue-700 mb-2">Monthly Net Income</p>
-                      <h3 className={`text-3xl font-bold ${netIncome >= 0 ? 'text-blue-900' : 'text-red-900'}`}>
-                        ${netIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </h3>
-                    </div>
-
-                    {/* Remaining Budget */}
-                    <div className={`bg-gradient-to-br ${remainingBudget >= 0 ? 'from-purple-50 to-purple-100' : 'from-orange-50 to-orange-100'} rounded-2xl shadow-lg border ${remainingBudget >= 0 ? 'border-purple-200' : 'border-orange-200'} p-6`}>
-                      <p className={`text-sm font-medium ${remainingBudget >= 0 ? 'text-purple-700' : 'text-orange-700'} mb-2`}>Available for Goals</p>
-                      <h3 className={`text-3xl font-bold ${remainingBudget >= 0 ? 'text-purple-900' : 'text-orange-900'}`}>
-                        ${remainingBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </h3>
-                      <p className={`text-xs mt-2 ${remainingBudget >= 0 ? 'text-purple-600' : 'text-orange-600'}`}>
-                        {savingsGoals.length > 0 ? `${savingsGoals.length} goal${savingsGoals.length !== 1 ? 's' : ''} allocated` : 'No goals yet'}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })()}
 
               {/* Fixed vs Flexible Expenses Section */}
-              <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-                {/* Header Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                {/* Column headers */}
                 <div className="px-6 py-3 border-b border-gray-200 flex items-center bg-gray-50">
-                  <div className="flex items-center gap-3 w-1/3">
-                    <span className="text-gray-600 font-medium">▼</span>
-                    <h2 className="text-sm font-medium text-gray-900">Expenses</h2>
-                  </div>
+                  <div className="w-1/3"></div>
                   <div className="w-2/3 grid grid-cols-3 gap-0 text-right">
                     <div className="text-xs font-medium text-gray-600">Budget</div>
                     <div className="text-xs font-medium text-gray-600">Actual</div>
@@ -2798,35 +3043,217 @@ function Dashboard({
                   </div>
                 </div>
 
+                {/* Income */}
+                <div className="border-b border-gray-200">
+                  <div className="relative">
+                    <div className="w-full px-6 py-3 flex items-center hover:bg-gray-50 transition-colors">
+                      <div
+                        onClick={() => setExpandedSpendingTypes({ ...expandedSpendingTypes, income: !expandedSpendingTypes.income })}
+                        className="flex items-center gap-3 w-1/3 cursor-pointer"
+                      >
+                        <span className={`text-gray-600 font-medium text-lg transition-transform inline-block ${expandedSpendingTypes.income ? 'rotate-90' : ''}`}>&gt;</span>
+                        <h3 className="text-sm font-medium text-gray-900">Income</h3>
+                      </div>
+                      <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                        {/* Budget total */}
+                        <div className="text-sm text-gray-900">
+                          ${incomeBudgetBreakdown.totalsAll.totalIncomeBudgetAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </div>
+                        {/* Actual total */}
+                        <div className="text-sm text-gray-900">
+                          ${incomeBudgetBreakdown.totalsAll.totalIncomeActualAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </div>
+                        {/* Remaining pill */}
+                        <div className="text-sm">
+                          {(() => { const rem = (incomeBudgetBreakdown.totalsAll.totalIncomeBudgetAll || 0) - (incomeBudgetBreakdown.totalsAll.totalIncomeActualAll || 0); const negative = rem < 0; return (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${negative ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                              {negative ? '-' : ''}${Math.abs(rem).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                            </span>
+                          )})()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`${(incomeBudgetBreakdown.totalsAll.totalIncomeBudgetAll - incomeBudgetBreakdown.totalsAll.totalIncomeActualAll) < 0 ? 'bg-red-400' : 'bg-green-400'}`} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px' }} />
+                  </div>
+
+                  {/* Income Details */}
+                  {expandedSpendingTypes.income && (
+                    <div className="divide-y divide-gray-200 bg-gray-50">
+                      {(showUnbudgetedIncome ? incomeBudgetBreakdown.incomeAll : incomeBudgetBreakdown.income).length > 0 ? (
+                        (showUnbudgetedIncome ? incomeBudgetBreakdown.incomeAll : incomeBudgetBreakdown.income).map((item) => {
+                          const hasBudget = (item.budget || 0) > 0
+                          const remaining = (item.budget || 0) - (item.actual || 0)
+                          const remainingColor = remaining < 0 ? 'text-red-600' : 'text-green-600'
+                          const budgetValue = incomeBudgetEdits[item.category] ?? (hasBudget ? item.budget : '')
+                          return (
+                            <div key={item.category} className="px-6 py-2 flex items-center hover:bg-gray-100 transition-colors">
+                              <span className="text-xs text-gray-700 w-1/3 flex items-center gap-2">
+                                <span className="text-sm">{getCategoryEmoji(item.category)}</span>
+                                <span>{item.category}</span>
+                              </span>
+                              <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                                {/* Budget input */}
+                                <div className="text-xs text-gray-600 flex justify-end">
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="0.01"
+                                    value={budgetValue}
+                                    onChange={(e) => setIncomeBudgetEdits(prev => ({ ...prev, [item.category]: e.target.value }))}
+                                    onBlur={(e) => saveIncomeBudget(item.category, Number(e.target.value || 0))}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                                    placeholder="0"
+                                    className="w-24 h-8 border border-gray-300 rounded-md px-3 text-sm text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  />
+                                </div>
+                                {/* Actual */}
+                                <span className="text-xs text-gray-900">
+                                  ${item.actual.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                                </span>
+                                {/* Remaining */}
+                                <span className={`text-xs ${hasBudget ? remainingColor : 'text-gray-400'}`}>
+                                  {hasBudget ? `${remaining < 0 ? '-' : ''}$${Math.abs(remaining).toLocaleString('en-US', { minimumFractionDigits: 0 })}` : ''}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })
+                      ) : (
+                        <div className="px-6 py-3 text-center text-gray-500 text-xs">No income this month</div>
+                      )}
+
+                      {/* Show/Collapse unbudgeted - empty right side */}
+                      <div
+                        onClick={() => setShowUnbudgetedIncome(!showUnbudgetedIncome)}
+                        className="px-6 py-3 flex items-center hover:bg-gray-50 transition-colors cursor-pointer border-t border-gray-200"
+                      >
+                        <div className="flex items-center gap-2 w-full text-sm text-gray-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>{(() => { const list = (incomeBudgetBreakdown.incomeAll || []).filter(i => (i.budget || 0) <= 0); return showUnbudgetedIncome ? 'Collapse unbudgeted' : `Show ${list.length} unbudgeted`; })()}</span>
+                        </div>
+                      </div>
+
+                      {/* Total Income */}
+                      <div className="px-6 py-3 flex items-center bg-white border-t border-gray-200">
+                        <h3 className="text-sm font-medium text-gray-900 w-1/3">Total Income</h3>
+                        <div className="w-2/3 grid grid-cols-3 gap-0 text-right">
+                          <div className="text-sm font-semibold text-gray-900">${incomeBudgetBreakdown.totalsAll.totalIncomeBudgetAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                          <div className="text-sm font-semibold text-gray-900">${incomeBudgetBreakdown.totalsAll.totalIncomeActualAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                          <div className={`text-sm font-semibold ${((incomeBudgetBreakdown.totalsAll.totalIncomeBudgetAll - incomeBudgetBreakdown.totalsAll.totalIncomeActualAll) < 0) ? 'text-red-600' : 'text-gray-900'}`}>
+                            ${(() => { const rem = (incomeBudgetBreakdown.totalsAll.totalIncomeBudgetAll - incomeBudgetBreakdown.totalsAll.totalIncomeActualAll); return rem.toLocaleString('en-US', { minimumFractionDigits: 2 }) })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Expenses Section */}
+                <div className="border-b border-gray-200">
+                  <div className="relative">
+                    <div className="w-full px-6 py-3 flex items-center hover:bg-gray-50 transition-colors">
+                      <div
+                        onClick={() => setExpandedSpendingTypes({ ...expandedSpendingTypes, expenses: !expandedSpendingTypes.expenses })}
+                        className="flex items-center gap-3 w-1/3 cursor-pointer"
+                      >
+                        <span className={`text-gray-600 font-medium text-lg transition-transform inline-block ${expandedSpendingTypes.expenses ? 'rotate-90' : ''}`}>&gt;</span>
+                        <h3 className="text-sm font-medium text-gray-900">Expenses</h3>
+                      </div>
+                      <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                        <div className="text-sm text-gray-900">
+                          ${(() => {
+                            const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                            const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                            return (fixedBudget + flexBucketBudget).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          })()}
+                        </div>
+                        <div className="text-sm text-gray-900">
+                          ${(() => {
+                            const actual = (spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0)
+                            return actual.toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          })()}
+                        </div>
+                        <div className="text-sm">
+                          {(() => {
+                            const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                            const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                            const budgetedExpenses = fixedBudget + flexBucketBudget
+                            const actual = (spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0)
+                            const rem = budgetedExpenses - actual
+                            const negative = rem < 0
+                            return (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${negative ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                {negative ? '-' : ''}${Math.abs(rem).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                              </span>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`${(((spendingTypeBreakdown.totalFixedBudget || 0) + (parseFloat(flexibleBudgetInput || 0) || 0)) - ((spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0))) < 0 ? 'bg-red-400' : 'bg-green-400'}`} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px' }} />
+                  </div>
+                </div>
+
+                {expandedSpendingTypes.expenses && (
+                <>
+
                 {/* Fixed Expenses */}
                 <div className="border-b border-gray-200">
-                  <button
-                    onClick={() => setExpandedSpendingTypes({...expandedSpendingTypes, fixed: !expandedSpendingTypes.fixed})}
-                    className="w-full px-6 py-3 flex items-center hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 w-1/3">
-                      <span className={`text-gray-600 font-medium text-lg transition-transform inline-block ${expandedSpendingTypes.fixed ? 'rotate-90' : ''}`}>&gt;</span>
-                      <h3 className="text-sm font-medium text-gray-900">Fixed</h3>
+                  <div className="relative">
+                    <div className="w-full px-6 py-3 flex items-center hover:bg-gray-50 transition-colors">
+                      <div
+                        onClick={() => setExpandedSpendingTypes({...expandedSpendingTypes, fixed: !expandedSpendingTypes.fixed})}
+                        className="flex items-center gap-3 w-1/3 cursor-pointer"
+                      >
+                        <span className={`text-gray-600 font-medium text-lg transition-transform inline-block ${expandedSpendingTypes.fixed ? 'rotate-90' : ''}`}>&gt;</span>
+                        <h3 className="text-sm font-medium text-gray-900">Fixed</h3>
+                      </div>
+                      <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                        <div className="text-sm text-gray-900">${spendingTypeBreakdown.totalsAll.totalFixedBudgetAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        <div className="text-sm text-gray-900">${spendingTypeBreakdown.totalsAll.totalFixedActualAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        <div className="text-sm">
+                          {(() => {
+                            const rem = spendingTypeBreakdown.totalsAll.totalFixedBudgetAll - spendingTypeBreakdown.totalsAll.totalFixedActualAll
+                            const negative = rem < 0
+                            return (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${negative ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                {negative ? '-' : ''}${Math.abs(rem).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                              </span>
+                            )
+                          })()}
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-2/3 grid grid-cols-3 gap-0 text-right">
-                      <div className="text-sm text-gray-900">${spendingTypeBreakdown.totalFixedBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                      <div className="text-sm text-gray-900">${spendingTypeBreakdown.totalFixedActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                      <div className={`text-sm ${spendingTypeBreakdown.totalFixedBudget > 0 ? (spendingTypeBreakdown.totalFixedBudget - spendingTypeBreakdown.totalFixedActual < 0 ? 'text-red-600' : 'text-green-600') : 'text-gray-900'}`}>${(spendingTypeBreakdown.totalFixedBudget - spendingTypeBreakdown.totalFixedActual).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                    </div>
-                  </button>
+                    <div className={`${(spendingTypeBreakdown.totalsAll.totalFixedBudgetAll - spendingTypeBreakdown.totalsAll.totalFixedActualAll) < 0 ? 'bg-red-400' : 'bg-green-400'}`} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px' }} />
+                  </div>
+
 
                   {/* Fixed Expenses Details */}
                   {expandedSpendingTypes.fixed && (
                     <div className="divide-y divide-gray-200 bg-gray-50">
-                      {spendingTypeBreakdown.fixed.filter(item => item.budget > 0).length > 0 ? (
-                        spendingTypeBreakdown.fixed.filter(item => item.budget > 0).map((item) => {
+                      {(showUnbudgetedFixed ? spendingTypeBreakdown.fixedAll : spendingTypeBreakdown.fixed).length > 0 ? (
+                        (showUnbudgetedFixed ? spendingTypeBreakdown.fixedAll : spendingTypeBreakdown.fixed).map((item) => {
                           const remaining = item.budget - item.actual
                           const remainingColor = remaining < 0 ? 'text-red-600' : 'text-green-600'
                           return (
                             <div key={item.category} className="px-6 py-2 flex items-center hover:bg-gray-100 transition-colors">
-                              <span className="text-xs text-gray-700 w-1/3">● {item.category}</span>
-                              <div className="w-2/3 grid grid-cols-3 gap-0 text-right">
-                                <span className="text-xs text-gray-600">${item.budget.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                              <span className="text-xs text-gray-700 w-1/3 flex items-center gap-2"><span className="text-sm">{getCategoryEmoji(item.category)}</span><span>{item.category}</span></span>
+                              <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                                <div className="text-xs text-gray-600 flex justify-end">
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="0.01"
+                                    value={fixedBudgetEdits[item.category] ?? ((item.budget || 0) > 0 ? item.budget : '')}
+                                    onChange={(e)=> setFixedBudgetEdits(prev=>({ ...prev, [item.category]: e.target.value }))}
+                                    onBlur={(e)=> saveFixedBudget(item.category, Number(e.target.value || 0))}
+                                    onKeyDown={(e)=>{ if (e.key==='Enter') e.currentTarget.blur() }}
+                                    placeholder="0"
+                                    className="w-24 h-8 border border-gray-300 rounded-md px-3 text-sm text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  />
+                                </div>
                                 <span className="text-xs text-gray-900">${item.actual.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                                 <span className={`text-xs ${remainingColor}`}>${remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                               </div>
@@ -2834,52 +3261,157 @@ function Dashboard({
                           )
                         })
                       ) : (
-                        <div className="px-6 py-3 text-center text-gray-500 text-xs">No fixed expenses with budget this month</div>
+                        <div className="px-6 py-3 text-center text-gray-500 text-xs">No fixed expenses this month</div>
                       )}
+                      {/* Show unbudgeted toggle at bottom of Fixed */}
+                      <div
+                        onClick={() => setShowUnbudgetedFixed(!showUnbudgetedFixed)}
+                        className="px-6 py-3 flex items-center hover:bg-gray-50 transition-colors cursor-pointer border-t border-gray-200"
+                      >
+                        <div className="flex items-center gap-2 w-full text-sm text-gray-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>{(() => { const list = (spendingTypeBreakdown.fixedAll || []).filter(i => (i.budget || 0) <= 0); return showUnbudgetedFixed ? 'Collapse unbudgeted' : `Show ${list.length} unbudgeted`; })()}</span>
+                        </div>
+                      </div>
+
                     </div>
                   )}
                 </div>
 
                 {/* Flexible Expenses */}
                 <div className="border-b border-gray-200">
-                  <button
-                    onClick={() => setExpandedSpendingTypes({...expandedSpendingTypes, flexible: !expandedSpendingTypes.flexible})}
-                    className="w-full px-6 py-3 flex items-center hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 w-1/3">
-                      <span className={`text-gray-600 font-medium text-lg transition-transform inline-block ${expandedSpendingTypes.flexible ? 'rotate-90' : ''}`}>&gt;</span>
-                      <h3 className="text-sm font-medium text-gray-900">Flexible</h3>
-                    </div>
-                    <div className="w-2/3 grid grid-cols-3 gap-0 text-right">
-                      <div className="text-sm text-gray-900">${spendingTypeBreakdown.totalFlexibleBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                      <div className="text-sm text-gray-900">${spendingTypeBreakdown.totalFlexibleActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                      <div className={`text-sm ${spendingTypeBreakdown.totalFlexibleBudget > 0 ? (spendingTypeBreakdown.totalFlexibleBudget - spendingTypeBreakdown.totalFlexibleActual < 0 ? 'text-red-600' : 'text-green-600') : 'text-gray-900'}`}>
-                        ${(spendingTypeBreakdown.totalFlexibleBudget - spendingTypeBreakdown.totalFlexibleActual).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <div className="relative">
+                    <div className="w-full px-6 py-3 flex items-center hover:bg-gray-50 transition-colors">
+                      <div
+                        onClick={() => setExpandedSpendingTypes({...expandedSpendingTypes, flexible: !expandedSpendingTypes.flexible})}
+                        className="flex items-center gap-3 w-1/3 cursor-pointer"
+                      >
+                        <span className={`text-gray-600 font-medium text-lg transition-transform inline-block ${expandedSpendingTypes.flexible ? 'rotate-90' : ''}`}>&gt;</span>
+                        <h3 className="text-sm font-medium text-gray-900">Flexible</h3>
+                      </div>
+                      <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                        <div className="text-sm text-gray-900 flex justify-end">
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            value={flexibleBudgetInput}
+                            onChange={(e) => setFlexibleBudgetInput(e.target.value)}
+                            placeholder="$0"
+                            className="w-24 h-8 border border-gray-300 rounded-md px-3 text-sm text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
+                        <div className="text-sm text-gray-900">${spendingTypeBreakdown.totalsAll.totalFlexibleActualAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        <div className="text-sm">
+                          {(() => {
+                            const headerBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                            const rem = headerBudget - spendingTypeBreakdown.totalsAll.totalFlexibleActualAll
+                            const negative = rem < 0
+                            return (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${negative ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                {negative ? '-' : ''}${Math.abs(rem).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                              </span>
+                            )
+                          })()}
+                        </div>
                       </div>
                     </div>
-                  </button>
+                    <div className={`${(spendingTypeBreakdown.totalsAll.totalFlexibleBudgetAll - spendingTypeBreakdown.totalsAll.totalFlexibleActualAll) < 0 ? 'bg-red-400' : 'bg-green-400'}`} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px' }} />
+                  </div>
+
+                  {/* Unallocated Flexible Budget row (based on header input minus category budgets) */}
+                  <div className="px-6 py-3 flex items-center">
+                    <div className="w-1/3 flex items-center gap-2 text-sm text-gray-700">
+                      <span className="text-gray-400">○</span>
+                      <span className="text-gray-600 italic">Unallocated Flexible Budget</span>
+                    </div>
+                    <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                      <div />
+                      <div className="text-sm">
+                        {(() => {
+                          const totalCatBudgets = spendingTypeBreakdown.totalsAll.totalFlexibleBudgetAll
+                          const headerBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                          const unallocated = headerBudget - totalCatBudgets
+                          const negative = unallocated < 0
+                          return (
+                            <span className={negative ? 'text-red-600' : 'text-gray-500'}>
+                              {negative ? '-' : ''}${Math.abs(unallocated).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                            </span>
+                          )
+                        })()}
+                      </div>
+                      <div />
+                    </div>
+                  </div>
 
                   {/* Flexible Expenses Details */}
                   {expandedSpendingTypes.flexible && (
-                    <div className="divide-y divide-gray-200 bg-gray-50">
-                      {spendingTypeBreakdown.flexible.filter(item => item.budget > 0).length > 0 ? (
-                        spendingTypeBreakdown.flexible.filter(item => item.budget > 0).map((item) => {
+                    <div className="bg-gray-50">
+                      {(showUnbudgetedFlexible ? spendingTypeBreakdown.flexibleAll : spendingTypeBreakdown.flexible).length > 0 ? (
+                        (showUnbudgetedFlexible ? spendingTypeBreakdown.flexibleAll : spendingTypeBreakdown.flexible).map((item) => {
                           const remaining = item.budget - item.actual
+                          const hasBudget = item.budget > 0
                           const remainingColor = remaining < 0 ? 'text-red-600' : 'text-green-600'
+                          const budgetValue = flexibleBudgetEdits[item.category] ?? (hasBudget ? item.budget : '')
                           return (
-                            <div key={item.category} className="px-6 py-2 flex items-center hover:bg-gray-100 transition-colors">
-                              <span className="text-xs text-gray-700 w-1/3">● {item.category}</span>
-                              <div className="w-2/3 grid grid-cols-3 gap-0 text-right">
-                                <span className="text-xs text-gray-600">${item.budget.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                <span className="text-xs text-gray-900">${item.actual.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                <span className={`text-xs ${remainingColor}`}>${remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            <div key={item.category} className="relative">
+                              <div className="px-6 py-2 flex items-center hover:bg-gray-100 transition-colors">
+                                <span className="text-xs text-gray-700 w-1/3 flex items-center gap-2">
+                                  <span className="text-sm">{getCategoryEmoji(item.category)}</span>
+                                  <span>{item.category}</span>
+                                </span>
+                                <div className="w-2/3 grid grid-cols-3 gap-0 text-right items-center">
+                                  <div className="text-xs text-gray-600 flex justify-end">
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="0.01"
+                                      value={budgetValue}
+                                      onChange={(e) => setFlexibleBudgetEdits(prev => ({ ...prev, [item.category]: e.target.value }))}
+                                      onBlur={(e) => {
+                                        const v = e.target.value
+                                        const num = Number(v || 0)
+                                        saveFlexibleBudget(item.category, num)
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.currentTarget.blur()
+                                        }
+                                      }}
+                                      placeholder="0"
+                                      className="w-24 h-8 border border-gray-300 rounded-md px-3 text-sm text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                  </div>
+                                  <span className="text-xs text-gray-900">${item.actual.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span>
+                                  <span className={`text-xs ${remainingColor}`}>{hasBudget ? `${remaining < 0 ? '-' : ''}$${Math.abs(remaining).toLocaleString('en-US', { minimumFractionDigits: 0 })}` : ''}</span>
+                                </div>
                               </div>
+                              {hasBudget && remaining < 0 && (
+                                <div className="bg-red-400" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px' }} />
+                              )}
                             </div>
                           )
                         })
                       ) : (
-                        <div className="px-6 py-3 text-center text-gray-500 text-xs">No flexible expenses with budget this month</div>
+                        <div className="px-6 py-3 text-center text-gray-500 text-xs">No flexible expenses this month</div>
                       )}
+
+                      {/* Show unbudgeted toggle at bottom of Flexible */}
+                      <div
+                        onClick={() => setShowUnbudgetedFlexible(!showUnbudgetedFlexible)}
+                        className="px-6 py-3 flex items-center hover:bg-gray-50 transition-colors cursor-pointer border-t border-gray-200"
+                      >
+                        <div className="flex items-center gap-2 w-full text-sm text-gray-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>{(() => { const list = (spendingTypeBreakdown.flexibleAll || []).filter(i => (i.budget || 0) <= 0); return showUnbudgetedFlexible ? 'Collapse unbudgeted' : `Show ${list.length} unbudgeted` })()}</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2888,15 +3420,393 @@ function Dashboard({
                 <div className="px-6 py-3 border-t border-gray-200 flex items-center">
                   <h3 className="text-sm font-medium text-gray-900 w-1/3">Total Expenses</h3>
                   <div className="w-2/3 grid grid-cols-3 gap-0 text-right">
-                    <div className="text-sm font-semibold text-gray-900">${(spendingTypeBreakdown.totalFixedBudget + spendingTypeBreakdown.totalFlexibleBudget).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                    <div className="text-sm font-semibold text-gray-900">${(spendingTypeBreakdown.totalFixedActual + spendingTypeBreakdown.totalFlexibleActual).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                    <div className={`text-sm font-semibold ${(spendingTypeBreakdown.totalFixedActual + spendingTypeBreakdown.totalFlexibleActual) > (spendingTypeBreakdown.totalFixedBudget + spendingTypeBreakdown.totalFlexibleBudget) ? 'text-red-600' : 'text-gray-900'}`}>
-                      ${((spendingTypeBreakdown.totalFixedBudget + spendingTypeBreakdown.totalFlexibleBudget) - (spendingTypeBreakdown.totalFixedActual + spendingTypeBreakdown.totalFlexibleActual)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <div className="text-sm font-semibold text-gray-900">
+                      ${(() => {
+                        const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                        const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                        return (fixedBudget + flexBucketBudget).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                      })()}
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      ${(() => {
+                        const actual = ((spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0))
+                        return (actual).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                      })()}
+                    </div>
+                    <div className={`text-sm font-semibold ${(() => {
+                      const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                      const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                      const budget = fixedBudget + flexBucketBudget
+                      const actual = ((spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0))
+                      return actual > budget ? 'text-red-600' : 'text-gray-900'
+                    })()}`}>
+                      ${(() => {
+                        const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                        const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                        const budget = fixedBudget + flexBucketBudget
+                        const actual = ((spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0))
+                        return (budget - actual).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                      })()}
                     </div>
                   </div>
                 </div>
+                </>
+                )}
+
+
+                {/* Left-to-Budget bottom banner */}
+                {(() => {
+                  const now = new Date()
+                  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                  let totalIncomeActual = 0
+                  transactions.forEach(t => {
+                    const d = getCreatedAtDate(t.createdAt)
+                    if (!d) return
+                    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                    if (mk === monthKey && t.type === 'income') totalIncomeActual += (t.amount || 0)
+                  })
+                  const incomeBudgetSum = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                  const budgetedIncome = incomeBudgetSum > 0 ? incomeBudgetSum : totalIncomeActual
+                  const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                  const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                  const budgetedExpenses = fixedBudget + flexBucketBudget
+                  const left = budgetedIncome - budgetedExpenses
+                  const bg = left < 0 ? '#e5484d' : '#30a46c' // Monarch red-9 / green-9
+                  return (
+                    <div className="px-6 py-3 flex items-center justify-between text-white" style={{ backgroundColor: bg }}>
+                      <div className="text-sm font-medium">Left to Budget</div>
+                      <div className="text-sm font-semibold">{`${left < 0 ? '-' : ''}$${Math.abs(left).toLocaleString('en-US', { minimumFractionDigits: 0 })}`}</div>
+                    </div>
+                  )
+                })()}
+
               </div>
 
+                {/* Right Column: Summary, Income, Expenses */}
+                <div className="space-y-4">
+                  {/* Unified Right Column: Summary | Income | Expenses (tabbed) */}
+                  <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                    {/* Top green panel */}
+                    <div className="px-6 pt-5 pb-4 bg-white">
+                      <div className="rounded-xl bg-green-100 px-6 py-5 text-center">
+                        <div className="text-3xl font-semibold text-green-700">
+                          ${(() => {
+                            const now = new Date()
+                            const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                            let totalIncomeActual = 0
+                            transactions.forEach(t => {
+                              const d = getCreatedAtDate(t.createdAt)
+                              if (!d) return
+                              const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                              if (mk === monthKey && t.type === 'income') totalIncomeActual += (t.amount || 0)
+                            })
+                            const incomeBudgetSum = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                            const budgetedIncome = incomeBudgetSum > 0 ? incomeBudgetSum : totalIncomeActual
+                            const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                            const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                            const budgetedExpenses = fixedBudget + flexBucketBudget
+                            const left = budgetedIncome - budgetedExpenses
+                            return Math.abs(left).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                          })()}
+                        </div>
+                        <div className="text-sm text-green-700">Left to budget
+                          <span className="ml-1 align-middle text-green-700">ℹ️</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="px-6 pb-3 -mt-1 flex items-center justify-center gap-3">
+                      <button onClick={() => setRightPanelTab('summary')} className={`px-4 py-1 rounded-full text-sm ${rightPanelTab==='summary' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>Summary</button>
+                      <button onClick={() => setRightPanelTab('income')} className={`px-4 py-1 rounded-full text-sm ${rightPanelTab==='income' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>Income</button>
+                      <button onClick={() => setRightPanelTab('expenses')} className={`px-4 py-1 rounded-full text-sm ${rightPanelTab==='expenses' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>Expenses</button>
+                    </div>
+
+                    {/* Tab content */}
+                    <div className="border-t">
+                      {rightPanelTab === 'summary' && (
+                        <>
+                          {/* Income section (summary) */}
+                          <div className="px-6 py-4 border-b border-gray-200">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="text-gray-900 font-medium">Income</div>
+                              <div className="text-gray-500">
+                                ${(() => {
+                                  const incomeBudgetSum = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                                  return (incomeBudgetSum > 0 ? incomeBudgetSum : 0).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                                })()} budget
+                              </div>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-green-500" style={{ width: `${(() => {
+                                const now = new Date()
+                                const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                                let actual = 0
+                                transactions.forEach(t => {
+                                  const d = getCreatedAtDate(t.createdAt)
+                                  if (!d) return
+                                  const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                  if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                                })
+                                const budget = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                                const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0
+                                return pct
+                              })()}%` }} />
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <div className="text-gray-900">${(() => {
+                                const now = new Date()
+                                const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                                let actual = 0
+                                transactions.forEach(t => {
+                                  const d = getCreatedAtDate(t.createdAt)
+                                  if (!d) return
+                                  const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                  if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                                })
+                                return actual.toLocaleString('en-US', { minimumFractionDigits: 0 })
+                              })()} earned</div>
+                              <div className={`font-medium ${(() => {
+                                const now = new Date()
+                                const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                                let actual = 0
+                                transactions.forEach(t => {
+                                  const d = getCreatedAtDate(t.createdAt)
+                                  if (!d) return
+                                  const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                  if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                                })
+                                const budget = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                                return (budget - actual) < 0 ? 'text-red-600' : 'text-green-600'
+                              })()}`}>
+                                ${(() => {
+                                  const now = new Date()
+                                  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                                  let actual = 0
+                                  transactions.forEach(t => {
+                                    const d = getCreatedAtDate(t.createdAt)
+                                    if (!d) return
+                                    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                    if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                                  })
+                                  const budget = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                                  return Math.abs(budget - actual).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                                })()} remaining
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Expenses section (summary) */}
+                          <div className="px-6 py-4">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="text-gray-900 font-medium">Expenses</div>
+                              <div className="text-gray-500">
+                                ${(() => {
+                                  const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                                  const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                                  return (fixedBudget + flexBucketBudget).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                                })()} budget
+                              </div>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-full ${(() => {
+                                const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                                const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                                const budget = fixedBudget + flexBucketBudget
+                                const actual = (spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0)
+                                return actual > budget ? 'bg-red-500' : 'bg-green-500'
+                              })()}" style={{ width: `${(() => {
+                                const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                                const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                                const budget = fixedBudget + flexBucketBudget
+                                const actual = (spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0)
+                                const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0
+                                return pct
+                              })()}%` }} />
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <div className="text-gray-900">${(() => {
+                                const actual = (spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0)
+                                return actual.toLocaleString('en-US', { minimumFractionDigits: 0 })
+                              })()} spent</div>
+                              <div className={`font-medium ${(() => {
+                                const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                                const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                                const budget = fixedBudget + flexBucketBudget
+                                const actual = (spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0)
+                                return (budget - actual) < 0 ? 'text-red-600' : 'text-green-600'
+                              })()}`}>
+                                ${(() => {
+                                  const fixedBudget = spendingTypeBreakdown.totalFixedBudget || 0
+                                  const flexBucketBudget = parseFloat(flexibleBudgetInput || 0) || 0
+                                  const budget = fixedBudget + flexBucketBudget
+                                  const actual = (spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0) + (spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0)
+                                  return Math.abs(budget - actual).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                                })()} remaining
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {rightPanelTab === 'income' && (
+                        <div className="px-6 py-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="text-gray-900 font-medium">Income</div>
+                            <div className="text-gray-500">
+                              ${(() => {
+                                const incomeBudgetSum = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                                return (incomeBudgetSum > 0 ? incomeBudgetSum : 0).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                              })()} budget
+                            </div>
+                          </div>
+                          <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500" style={{ width: `${(() => {
+                              const now = new Date()
+                              const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                              let actual = 0
+                              transactions.forEach(t => {
+                                const d = getCreatedAtDate(t.createdAt)
+                                if (!d) return
+                                const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                              })
+                              const budget = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                              const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0
+                              return pct
+                            })()}%` }} />
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-sm">
+                            <div className="text-gray-900">${(() => {
+                              const now = new Date()
+                              const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                              let actual = 0
+                              transactions.forEach(t => {
+                                const d = getCreatedAtDate(t.createdAt)
+                                if (!d) return
+                                const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                              })
+                              return actual.toLocaleString('en-US', { minimumFractionDigits: 0 })
+                            })()} earned</div>
+                            <div className={`font-medium ${(() => {
+                              const now = new Date()
+                              const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                              let actual = 0
+                              transactions.forEach(t => {
+                                const d = getCreatedAtDate(t.createdAt)
+                                if (!d) return
+                                const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                              })
+                              const budget = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                              return (budget - actual) < 0 ? 'text-red-600' : 'text-green-600'
+                            })()}`}>
+                              ${(() => {
+                                const now = new Date()
+                                const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                                let actual = 0
+                                transactions.forEach(t => {
+                                  const d = getCreatedAtDate(t.createdAt)
+                                  if (!d) return
+                                  const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                                  if (mk === monthKey && t.type === 'income') actual += (t.amount || 0)
+                                })
+                                const budget = Object.values(budgetsIncome || {}).reduce((s, n) => s + (n || 0), 0)
+                                return Math.abs(budget - actual).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                              })()} remaining
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {rightPanelTab === 'expenses' && (
+                        <div className="px-6 py-4 space-y-6">
+                          {/* Fixed */}
+                          <div>
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="text-gray-900 font-medium">Fixed</div>
+                              <div className="text-gray-500">${(spendingTypeBreakdown.totalFixedBudget || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })} budget</div>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-full ${(() => {
+                                const budget = spendingTypeBreakdown.totalFixedBudget || 0
+                                const actual = spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0
+                                return actual > budget ? 'bg-red-500' : 'bg-green-500'
+                              })()}" style={{ width: `${(() => {
+                                const budget = spendingTypeBreakdown.totalFixedBudget || 0
+                                const actual = spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0
+                                const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0
+                                return pct
+                              })()}%` }} />
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <div className="text-gray-900">${(spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })} spent</div>
+                              <div className={`font-medium ${(() => {
+                                const budget = spendingTypeBreakdown.totalFixedBudget || 0
+                                const actual = spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0
+                                return (budget - actual) < 0 ? 'text-red-600' : 'text-green-600'
+                              })()}`}>
+                                ${(() => {
+                                  const budget = spendingTypeBreakdown.totalFixedBudget || 0
+                                  const actual = spendingTypeBreakdown.totalsAll.totalFixedActualAll || 0
+                                  return Math.abs(budget - actual).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                                })()} remaining
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Flexible */}
+                          <div>
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="text-gray-900 font-medium">Flexible</div>
+                              <div className="text-gray-500">${(parseFloat(flexibleBudgetInput || 0) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })} budget</div>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-yellow-400" style={{ width: `${(() => {
+                                const budget = parseFloat(flexibleBudgetInput || 0) || 0
+                                const actual = spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0
+                                const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0
+                                return pct
+                              })()}%` }} />
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <div className="text-gray-900">${(spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })} spent</div>
+                              <div className={`font-medium ${(() => {
+                                const budget = parseFloat(flexibleBudgetInput || 0) || 0
+                                const actual = spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0
+                                return (budget - actual) < 0 ? 'text-red-600' : 'text-green-600'
+                              })()}`}>
+                                ${(() => {
+                                  const budget = parseFloat(flexibleBudgetInput || 0) || 0
+                                  const actual = spendingTypeBreakdown.totalsAll.totalFlexibleActualAll || 0
+                                  return Math.abs(budget - actual).toLocaleString('en-US', { minimumFractionDigits: 0 })
+                                })()} remaining
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Non-Monthly (placeholder if not present) */}
+                          <div>
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="text-gray-900 font-medium">Non-Monthly</div>
+                              <div className="text-gray-500">$0 budget</div>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-green-500" style={{ width: '0%' }} />
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <div className="text-gray-900">$0 spent</div>
+                              <div className="font-medium text-green-600">$0 remaining</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
               {/* Header with Add Goal Button */}
               <div className="flex items-center justify-between">
                 <div>
@@ -4289,7 +5199,7 @@ function Dashboard({
                         }))}
                       margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
                       innerRadius={0.65}
-                      padAngle={1}
+                      padAngle={0}
                       cornerRadius={0}
                       colors={{ datum: 'data.color' }}
                       borderWidth={0}
@@ -4366,7 +5276,7 @@ function Dashboard({
                         }))}
                       margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
                       innerRadius={0.65}
-                      padAngle={1}
+                      padAngle={0}
                       cornerRadius={0}
                       colors={{ datum: 'data.color' }}
                       borderWidth={0}
@@ -4426,85 +5336,193 @@ function Dashboard({
                 </div>
               )}
 
-              {/* Transactions Table */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900">Transactions</h3>
-                  <div className="flex gap-2">
-                    <button className="text-xs text-gray-600 hover:text-gray-900">Edit Insights</button>
-                    <button className="text-xs text-gray-600 hover:text-gray-900">Sort</button>
+              {/* Transactions + Summary (two columns) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: Transactions */}
+                <div className="lg:col-span-2">
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-gray-900">Transactions</h3>
+                      <div className="flex gap-2">
+                        <button className="text-xs text-gray-600 hover:text-gray-900">Edit Insights</button>
+                        <button className="text-xs text-gray-600 hover:text-gray-900">Sort</button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Description</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Category</th>
+                            <th className="text-right py-3 px-4 font-medium text-gray-700">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactionsSortedByDateDesc
+                            .filter(transaction => {
+                              // Filter based on active tab
+                              if (reportsTab === 'spending') {
+                                return transaction.type === 'expense'
+                              } else if (reportsTab === 'income') {
+                                return transaction.type === 'income'
+                              }
+                              // For cashflow tab, show all transactions
+                              return true
+                            })
+                            .slice(0, 20)
+                            .map((transaction) => (
+                              <tr key={transaction.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="py-3 px-4 text-gray-600">
+                                  {(() => {
+                                    // Match Transactions section: handle both date strings (YYYY-MM-DD) and timestamps
+                                    if (typeof transaction.createdAt === 'string') {
+                                      const [year, month, day] = transaction.createdAt.split('-')
+                                      return new Date(year, parseInt(month) - 1, parseInt(day)).toLocaleDateString('en-US', {
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        year: 'numeric',
+                                      })
+                                    } else {
+                                      return new Date(transaction.createdAt).toLocaleDateString('en-US', {
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        year: 'numeric',
+                                      })
+                                    }
+                                  })()}
+                                </td>
+                                <td className="py-3 px-4 text-gray-900">{transaction.description}</td>
+                                <td className="py-3 px-4 text-gray-600">{transaction.category}</td>
+                                <td className={`py-3 px-4 text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                  {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Description</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Category</th>
-                        <th className="text-right py-3 px-4 font-medium text-gray-700">Amount</th>
-                      </tr>
-                    </thead>
-	                    <tbody>
-	                      {transactionsSortedByDateDesc.slice(0, 20).map((transaction) => (
-                        <tr key={transaction.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4 text-gray-600">
-	                            {(() => {
-	                              // Match Transactions section: handle both date strings (YYYY-MM-DD) and timestamps
-	                              if (typeof transaction.createdAt === 'string') {
-	                                const [year, month, day] = transaction.createdAt.split('-')
-	                                return new Date(year, parseInt(month) - 1, parseInt(day)).toLocaleDateString('en-US', {
-	                                  month: '2-digit',
-	                                  day: '2-digit',
-	                                  year: 'numeric',
-	                                })
-	                              } else {
-	                                return new Date(transaction.createdAt).toLocaleDateString('en-US', {
-	                                  month: '2-digit',
-	                                  day: '2-digit',
-	                                  year: 'numeric',
-	                                })
-	                              }
-	                            })()}
-                          </td>
-                          <td className="py-3 px-4 text-gray-900">{transaction.description}</td>
-                          <td className="py-3 px-4 text-gray-600">{transaction.category}</td>
-                          <td className={`py-3 px-4 text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                            {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Total transactions</p>
-                    <p className="text-lg font-semibold text-gray-900">{transactions.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Largest transaction</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      ${Math.max(...transactions.map(t => t.amount), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Average transaction</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      ${(transactions.reduce((sum, t) => sum + t.amount, 0) / transactions.length || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Date range</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {transactions.length > 0
-                        ? `${new Date(Math.min(...transactions.map(t => t.createdAt))).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(Math.max(...transactions.map(t => t.createdAt))).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                        : 'N/A'
-                      }
-                    </p>
+                {/* Right: Summary */}
+                <div className="lg:col-span-1">
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Summary</h3>
+                    <div className="divide-y divide-gray-100">
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-xs text-gray-600">Total transactions</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {(() => {
+                            const filteredTransactions = transactions.filter(transaction => {
+                              if (reportsTab === 'spending') return transaction.type === 'expense'
+                              if (reportsTab === 'income') return transaction.type === 'income'
+                              return true
+                            })
+                            return filteredTransactions.length
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-xs text-gray-600">Largest transaction</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {(() => {
+                            const filteredTransactions = transactions.filter(transaction => {
+                              if (reportsTab === 'spending') return transaction.type === 'expense'
+                              if (reportsTab === 'income') return transaction.type === 'income'
+                              return true
+                            })
+                            return '$' + Math.max(...filteredTransactions.map(t => t.amount), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-xs text-gray-600">Average transaction</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {(() => {
+                            const filteredTransactions = transactions.filter(transaction => {
+                              if (reportsTab === 'spending') return transaction.type === 'expense'
+                              if (reportsTab === 'income') return transaction.type === 'income'
+                              return true
+                            })
+                            return '$' + (filteredTransactions.reduce((sum, t) => sum + t.amount, 0) / filteredTransactions.length || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-xs text-gray-600">Total income</span>
+                        <span className="text-sm font-semibold text-green-600">
+                          {(() => {
+                            const filteredTransactions = transactions.filter(transaction => {
+                              if (reportsTab === 'spending') return transaction.type === 'expense'
+                              if (reportsTab === 'income') return transaction.type === 'income'
+                              return true
+                            })
+                            const income = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+                            return '+$' + income.toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-xs text-gray-600">Total spending</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {(() => {
+                            const filteredTransactions = transactions.filter(transaction => {
+                              if (reportsTab === 'spending') return transaction.type === 'expense'
+                              if (reportsTab === 'income') return transaction.type === 'income'
+                              return true
+                            })
+                            const spending = filteredTransactions.filter(t => t.type !== 'income').reduce((s, t) => s + t.amount, 0)
+                            return '$' + spending.toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-xs text-gray-600">First transaction</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {(() => {
+                            const filteredTransactions = transactions.filter(transaction => {
+                              if (reportsTab === 'spending') return transaction.type === 'expense'
+                              if (reportsTab === 'income') return transaction.type === 'income'
+                              return true
+                            })
+                            if (filteredTransactions.length === 0) return 'N/A'
+                            const toTs = (createdAt) => {
+                              if (typeof createdAt === 'string') {
+                                const [y, m, d] = createdAt.split('-')
+                                return new Date(y, parseInt(m) - 1, parseInt(d)).getTime()
+                              }
+                              return new Date(createdAt).getTime()
+                            }
+                            const minTs = Math.min(...filteredTransactions.map(t => toTs(t.createdAt)))
+                            return new Date(minTs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-xs text-gray-600">Last transaction</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {(() => {
+                            const filteredTransactions = transactions.filter(transaction => {
+                              if (reportsTab === 'spending') return transaction.type === 'expense'
+                              if (reportsTab === 'income') return transaction.type === 'income'
+                              return true
+                            })
+                            if (filteredTransactions.length === 0) return 'N/A'
+                            const toTs = (createdAt) => {
+                              if (typeof createdAt === 'string') {
+                                const [y, m, d] = createdAt.split('-')
+                                return new Date(y, parseInt(m) - 1, parseInt(d)).getTime()
+                              }
+                              return new Date(createdAt).getTime()
+                            }
+                            const maxTs = Math.max(...filteredTransactions.map(t => toTs(t.createdAt)))
+                            return new Date(maxTs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          })()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
