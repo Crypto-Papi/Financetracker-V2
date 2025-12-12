@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
-import { collection, getFirestore, onSnapshot, orderBy, query } from 'firebase/firestore'
+import { collection, doc, getDoc, getFirestore, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { Auth } from './components/Auth'
 import Dashboard from './components/Dashboard'
@@ -36,6 +36,7 @@ function App() {
   const [transactions, setTransactions] = useState([])
   const [userId, setUserId] = useState(null)
   const [user, setUser] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [firebaseStatus, setFirebaseStatus] = useState('connecting') // 'connecting', 'connected', 'error'
   const [firebaseError, setFirebaseError] = useState(null)
@@ -57,12 +58,41 @@ function App() {
       } else {
         setUser(null)
         setUserId(null)
+        setUserProfile(null)
         setLoading(false)
       }
     })
 
     return () => unsubscribe()
   }, [])
+
+  // Load user profile from Firebase
+  useEffect(() => {
+    if (!db || !userId) return
+
+    const loadUserProfile = async () => {
+      try {
+        const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+        const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/info`)
+        const profileSnap = await getDoc(userProfileRef)
+
+        if (profileSnap.exists()) {
+          setUserProfile(profileSnap.data())
+        } else if (user?.displayName) {
+          // Fallback to Firebase Auth displayName if profile doesn't exist
+          setUserProfile({ name: user.displayName, email: user.email })
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error)
+        // Fallback to displayName from auth
+        if (user?.displayName) {
+          setUserProfile({ name: user.displayName, email: user.email })
+        }
+      }
+    }
+
+    loadUserProfile()
+  }, [db, userId, user])
 
   // Load transactions from localStorage on mount (for dev mode)
   useEffect(() => {
@@ -252,7 +282,10 @@ function App() {
       setTransactions={setTransactions}
       userId={userId || 'dev-user-123'}
       user={displayUser}
+      userProfile={userProfile}
+      setUserProfile={setUserProfile}
       db={db}
+      auth={auth}
       handleLogout={handleLogout}
       firebaseStatus={firebaseStatus}
       firebaseError={firebaseError}
