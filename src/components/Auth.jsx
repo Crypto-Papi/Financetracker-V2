@@ -96,17 +96,23 @@ export function Auth({ auth, onAuthSuccess }) {
         console.log('✅ Firestore profile saved')
 
         // Also save to flat mailing_list collection for easy export/email marketing
+        // This is non-blocking - we don't want it to break signup if it fails
         console.log('📝 Saving to mailing_list...')
-        const mailingListRef = doc(db, `artifacts/${appId}/mailing_list/${user.uid}`)
-        await setDoc(mailingListRef, {
-          name: name.trim(),
-          email: email,
-          userId: user.uid,
-          signupDate: serverTimestamp(),
-          source: 'signup',
-          marketingOptIn: true
-        })
-        console.log('✅ Mailing list saved')
+        try {
+          const mailingListRef = doc(db, `artifacts/${appId}/mailing_list/${user.uid}`)
+          await setDoc(mailingListRef, {
+            name: name.trim(),
+            email: email,
+            userId: user.uid,
+            signupDate: serverTimestamp(),
+            source: 'signup',
+            marketingOptIn: true
+          })
+          console.log('✅ Mailing list saved')
+        } catch (mailingError) {
+          console.warn('⚠️ Mailing list save failed (non-critical):', mailingError.message)
+          // Continue anyway - this shouldn't block signup
+        }
 
         // Send email verification
         console.log('🔄 About to send verification email to:', user.email)
