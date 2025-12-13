@@ -189,6 +189,11 @@ function Dashboard({
   const [accountEmail, setAccountEmail] = useState('')
   const [accountSaving, setAccountSaving] = useState(false)
 
+  // Complete Profile prompt (for users without a name)
+  const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false)
+  const [profileNameInput, setProfileNameInput] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+
   const [showUnbudgetedFixed, setShowUnbudgetedFixed] = useState(false)
   const [showUnbudgetedFlexible, setShowUnbudgetedFlexible] = useState(false)
   const [showUnbudgetedIncome, setShowUnbudgetedIncome] = useState(false)
@@ -623,6 +628,65 @@ function Dashboard({
     const userName = userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'there'
     return `${timeGreeting}, ${userName}! 👋`
   }, [userProfile, user])
+
+  // Check if user needs to complete their profile (no name set)
+  useEffect(() => {
+    // Only show after initial load and if user is logged in
+    if (!user || !userId) return
+
+    // Check if user has a name set
+    const hasName = userProfile?.name || user?.displayName
+
+    // If no name, show the complete profile modal after a short delay
+    if (!hasName) {
+      const timer = setTimeout(() => {
+        setShowCompleteProfileModal(true)
+      }, 1000) // Wait 1 second so user sees the dashboard first
+      return () => clearTimeout(timer)
+    }
+  }, [user, userId, userProfile])
+
+  // Handle saving profile name from the complete profile modal
+  const handleSaveProfileName = useCallback(async () => {
+    if (!profileNameInput.trim()) {
+      showNotification('Please enter your name', 'error')
+      return
+    }
+
+    setProfileSaving(true)
+    try {
+      // Update Firebase Auth profile
+      if (auth?.currentUser) {
+        await updateProfile(auth.currentUser, { displayName: profileNameInput.trim() })
+      }
+
+      // Update Firestore user profile
+      if (db && userId) {
+        const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+        const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/info`)
+        await setDoc(userProfileRef, {
+          name: profileNameInput.trim(),
+          email: user?.email || '',
+          updatedAt: serverTimestamp()
+        }, { merge: true })
+      }
+
+      // Update local state
+      setUserProfile(prev => ({
+        ...prev,
+        name: profileNameInput.trim()
+      }))
+
+      showNotification('Welcome to Keel, ' + profileNameInput.trim() + '! 🎉', 'success')
+      setShowCompleteProfileModal(false)
+      setProfileNameInput('')
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      showNotification('Failed to save profile', 'error')
+    } finally {
+      setProfileSaving(false)
+    }
+  }, [profileNameInput, auth, db, userId, user, showNotification, setUserProfile])
 
   // Handle opening My Account modal
   const handleOpenAccountModal = useCallback(() => {
@@ -7157,6 +7221,54 @@ function Dashboard({
               debtName={celebratingDebtName}
               onClose={() => setShowDebtPaidOffModal(false)}
             />
+          )}
+
+          {/* Complete Profile Modal - shown when user has no name set */}
+          {showCompleteProfileModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                {/* Modal Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5">
+                  <div className="flex items-center justify-center">
+                    <img src="/keel-logo.png" alt="Keel" className="w-16 h-16" />
+                  </div>
+                </div>
+
+                {/* Modal Body */}
+                <div className="p-6 space-y-4">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome to Keel! 👋</h2>
+                    <p className="text-gray-500 text-sm">Let's personalize your experience. What's your name?</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileNameInput}
+                      onChange={(e) => setProfileNameInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveProfileName()}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg"
+                      placeholder="Enter your name"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                  <button
+                    onClick={handleSaveProfileName}
+                    disabled={profileSaving || !profileNameInput.trim()}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {profileSaving ? 'Saving...' : 'Continue →'}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* My Account Modal */}
