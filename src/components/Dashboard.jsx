@@ -669,6 +669,17 @@ function Dashboard({
           email: user?.email || '',
           updatedAt: serverTimestamp()
         }, { merge: true })
+
+        // Also save to flat mailing_list collection for easy export/email marketing
+        const mailingListRef = doc(db, `artifacts/${appId}/mailing_list/${userId}`)
+        await setDoc(mailingListRef, {
+          name: profileNameInput.trim(),
+          email: user?.email || '',
+          userId: userId,
+          signupDate: serverTimestamp(),
+          source: 'profile_completion',
+          marketingOptIn: true
+        }, { merge: true })
       }
 
       // Update local state
@@ -716,6 +727,15 @@ function Dashboard({
         await setDoc(userProfileRef, {
           name: accountName.trim(),
           email: accountEmail,
+          updatedAt: serverTimestamp()
+        }, { merge: true })
+
+        // Also update mailing_list collection to keep it in sync
+        const mailingListRef = doc(db, `artifacts/${appId}/mailing_list/${userId}`)
+        await setDoc(mailingListRef, {
+          name: accountName.trim(),
+          email: accountEmail,
+          userId: userId,
           updatedAt: serverTimestamp()
         }, { merge: true })
       }

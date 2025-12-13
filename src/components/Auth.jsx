@@ -45,6 +45,17 @@ export function Auth({ auth, onAuthSuccess }) {
           updatedAt: serverTimestamp()
         })
 
+        // Also save to flat mailing_list collection for easy export/email marketing
+        const mailingListRef = doc(db, `artifacts/${appId}/mailing_list/${user.uid}`)
+        await setDoc(mailingListRef, {
+          name: name.trim(),
+          email: email,
+          userId: user.uid,
+          signupDate: serverTimestamp(),
+          source: 'signup',
+          marketingOptIn: true
+        })
+
         // Send email verification
         await sendEmailVerification(user)
 
