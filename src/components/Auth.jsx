@@ -98,22 +98,19 @@ export function Auth({ auth, onAuthSuccess }) {
         })
 
         // Send email verification
+        console.log('🔄 About to send verification email to:', user.email)
         try {
           await sendEmailVerification(user)
           console.log('✅ Verification email sent successfully to:', user.email)
-          setSuccess('Account created! Verification email sent to ' + user.email + '. Check your inbox (and spam folder).')
+          alert('✅ Verification email sent to ' + user.email + '! Check your inbox and spam folder.')
         } catch (emailError) {
           console.error('❌ Failed to send verification email:', emailError)
-          // Show specific error to user
-          if (emailError.code === 'auth/too-many-requests') {
-            setError('Too many email requests. Please wait a few minutes before trying again.')
-          } else {
-            setSuccess('Account created! However, there was an issue sending the verification email. You can resend it from the next screen.')
-          }
+          console.error('Error code:', emailError.code)
+          console.error('Error message:', emailError.message)
+          alert('❌ Failed to send email: ' + (emailError.code || emailError.message))
         }
 
         // Don't sign out - let App.jsx handle showing the VerifyEmail page
-        // This provides a smoother UX than signing out and making them log in again
       } else {
         // Sign in existing user
         await signInWithEmailAndPassword(auth, email, password)
