@@ -4,6 +4,7 @@ import { collection, doc, getDoc, getFirestore, onSnapshot, orderBy, query } fro
 import { useEffect, useState } from 'react'
 import { Auth } from './components/Auth'
 import Dashboard from './components/Dashboard'
+import { VerifyEmail } from './components/VerifyEmail'
 
 // Initialize Firebase
 let app, auth, db
@@ -262,6 +263,20 @@ function App() {
   const isDevelopment = !auth || !db
   if (!user && !isDevelopment) {
     return <Auth auth={auth} onAuthSuccess={() => {}} />
+  }
+
+  // Check if user needs to verify email (only for real Firebase users, not dev mode)
+  if (user && !isDevelopment && !user.emailVerified) {
+    return (
+      <VerifyEmail
+        user={user}
+        auth={auth}
+        onBackToLogin={() => {
+          setUser(null)
+          setUserId(null)
+        }}
+      />
+    )
   }
 
   // Use mock user for development mode
