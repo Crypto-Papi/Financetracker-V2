@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 import { Auth } from './components/Auth'
 import Dashboard from './components/Dashboard'
 import { VerifyEmail } from './components/VerifyEmail'
+import { Paywall } from './components/Paywall'
+import { useSubscription } from './hooks/useSubscription'
 
 // Initialize Firebase
 let app, auth, db
@@ -33,6 +35,9 @@ if (firebaseConfig && firebaseConfig.apiKey) {
 	  // Firebase config not found; running in development mode without Firebase.
 	}
 
+// App ID for Firestore paths
+const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+
 function App() {
   const [transactions, setTransactions] = useState([])
   const [userId, setUserId] = useState(null)
@@ -42,6 +47,14 @@ function App() {
   const [firebaseStatus, setFirebaseStatus] = useState('connecting') // 'connecting', 'connected', 'error'
   const [firebaseError, setFirebaseError] = useState(null)
   const [monthResetNotification, setMonthResetNotification] = useState(null)
+
+  // Check subscription status
+  const {
+    hasAccess,
+    isLoading: subscriptionLoading,
+    isLifetimeFree,
+    isSubscribed
+  } = useSubscription(db, userId, userProfile, appId)
 
   // Firebase authentication
   useEffect(() => {
@@ -289,6 +302,31 @@ function App() {
     } catch (error) {
       console.error('Error logging out:', error)
     }
+  }
+
+  // Show loading while checking subscription (only for real users, not dev mode)
+  if (!isDevelopment && subscriptionLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-xl">Checking subscription...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show paywall if user doesn't have access (not subscribed AND not lifetime free)
+  // Skip paywall in development mode
+  if (!isDevelopment && !hasAccess) {
+    return (
+      <Paywall
+        db={db}
+        userId={userId}
+        userEmail={user?.email}
+        onLogout={handleLogout}
+      />
+    )
   }
 
   return (

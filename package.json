@@ -12,6 +12,7 @@
   "dependencies": {
     "@nivo/pie": "^0.99.0",
     "@nivo/sankey": "^0.99.0",
+    "@stripe/stripe-js": "^8.5.3",
     "autoprefixer": "^10.4.22",
     "canvas-confetti": "^1.9.4",
     "driver.js": "^1.4.0",

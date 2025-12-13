@@ -1,0 +1,128 @@
+import { loadStripe } from '@stripe/stripe-js'
+import { collection, doc, addDoc, onSnapshot, query, where, getDocs } from 'firebase/firestore'
+
+// Stripe configuration
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51Se0Or2ZbUSBaSJSDvSFB5Up1hwyVH78uG4LWu02eiWJnJzQXEkqZgy5kapFI4E6VCCkOd7gLMdrR58kgqV9JkM4q00g4TpsG3b'
+const STRIPE_PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_ID || 'price_1Se0pF2ZbUSBaSJSpVgC0Pbe'
+
+// Initialize Stripe
+let stripePromise = null
+
+export const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY)
+  }
+  return stripePromise
+}
+
+/**
+ * Create a Stripe Checkout session and redirect to payment
+ * This works with the Firebase "Run Subscription Payments with Stripe" extension
+ * 
+ * @param {Object} db - Firestore database instance
+ * @param {string} userId - Current user's ID
+ * @param {string} appId - Application ID for Firestore path
+ * @returns {Promise<void>}
+ */
+export async function createCheckoutSession(db, userId, appId) {
+  if (!db || !userId) {
+    throw new Error('Database and user ID are required')
+  }
+
+  // Create a checkout session in Firestore
+  // The Firebase extension listens to this collection and creates the Stripe session
+  const checkoutSessionsRef = collection(db, `artifacts/${appId}/users/${userId}/checkout_sessions`)
+  
+  const sessionDoc = await addDoc(checkoutSessionsRef, {
+    price: STRIPE_PRICE_ID,
+    success_url: window.location.origin + '?payment=success',
+    cancel_url: window.location.origin + '?payment=cancelled',
+    mode: 'subscription',
+    created: new Date()
+  })
+
+  // Wait for the extension to add the sessionId
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onSnapshot(sessionDoc, async (snap) => {
+      const data = snap.data()
+      
+      if (data?.error) {
+        unsubscribe()
+        reject(new Error(data.error.message))
+        return
+      }
+
+      if (data?.sessionId) {
+        unsubscribe()
+        // Redirect to Stripe Checkout
+        const stripe = await getStripe()
+        const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId })
+        
+        if (error) {
+          reject(error)
+        } else {
+          resolve()
+        }
+      }
+    }, (error) => {
+      unsubscribe()
+      reject(error)
+    })
+
+    // Timeout after 30 seconds
+    setTimeout(() => {
+      unsubscribe()
+      reject(new Error('Checkout session creation timed out. Please try again.'))
+    }, 30000)
+  })
+}
+
+/**
+ * Check if user has an active subscription
+ * 
+ * @param {Object} db - Firestore database instance
+ * @param {string} userId - Current user's ID
+ * @param {string} appId - Application ID for Firestore path
+ * @returns {Promise<{isSubscribed: boolean, subscription: Object|null}>}
+ */
+export async function checkSubscriptionStatus(db, userId, appId) {
+  if (!db || !userId) {
+    return { isSubscribed: false, subscription: null }
+  }
+
+  try {
+    // Check the subscriptions subcollection
+    const subscriptionsRef = collection(db, `artifacts/${appId}/users/${userId}/subscriptions`)
+    const q = query(subscriptionsRef, where('status', 'in', ['active', 'trialing']))
+    const snapshot = await getDocs(q)
+
+    if (!snapshot.empty) {
+      const subscriptionData = snapshot.docs[0].data()
+      return { 
+        isSubscribed: true, 
+        subscription: {
+          id: snapshot.docs[0].id,
+          ...subscriptionData
+        }
+      }
+    }
+
+    return { isSubscribed: false, subscription: null }
+  } catch (error) {
+    console.error('Error checking subscription status:', error)
+    return { isSubscribed: false, subscription: null }
+  }
+}
+
+/**
+ * Check if user is a "lifetime free" user (friends & family)
+ * 
+ * @param {Object} userProfile - User's profile data from Firestore
+ * @returns {boolean}
+ */
+export function isLifetimeFreeUser(userProfile) {
+  return userProfile?.is_lifetime_free === true
+}
+
+export { STRIPE_PRICE_ID }
+
