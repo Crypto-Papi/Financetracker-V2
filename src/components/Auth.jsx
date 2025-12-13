@@ -11,6 +11,47 @@ export function Auth({ auth, onAuthSuccess }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showResendVerification, setShowResendVerification] = useState(false)
+  const [resendingEmail, setResendingEmail] = useState(false)
+
+  // Handle resending verification email for existing unverified accounts
+  const handleResendVerification = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password to resend verification')
+      return
+    }
+
+    setResendingEmail(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      // Sign in to get the user object
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
+
+      if (user.emailVerified) {
+        // Already verified, just proceed
+        setSuccess('Your email is already verified! Logging you in...')
+        setTimeout(() => onAuthSuccess(), 1000)
+      } else {
+        // Send verification email
+        await sendEmailVerification(user)
+        setSuccess('Verification email sent! Please check your inbox and spam folder.')
+        setShowResendVerification(false)
+      }
+    } catch (err) {
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('Incorrect password. Please try again.')
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait a few minutes before trying again.')
+      } else {
+        setError('Failed to send verification email. Please try again.')
+      }
+    } finally {
+      setResendingEmail(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -79,8 +120,12 @@ export function Auth({ auth, onAuthSuccess }) {
     } catch (err) {
       // Friendly error messages
       let errorMessage = err.message
+      setShowResendVerification(false)
+
       if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered. Please sign in instead.'
+        errorMessage = 'This email is already registered.'
+        // Show resend verification option in case they never verified
+        setShowResendVerification(true)
       } else if (err.code === 'auth/weak-password') {
         errorMessage = 'Password should be at least 6 characters.'
       } else if (err.code === 'auth/invalid-email') {
@@ -222,7 +267,26 @@ export function Auth({ auth, onAuthSuccess }) {
               />
             </div>
 
-            {error && <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">{error}</div>}
+            {error && (
+              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                {error}
+                {showResendVerification && (
+                  <div className="mt-2 pt-2 border-t border-red-500/30">
+                    <p className="text-xs text-red-200 mb-2">
+                      Haven't verified your email yet? Enter your password and resend the verification email.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendingEmail}
+                      className="text-xs bg-red-500/30 hover:bg-red-500/50 px-3 py-1.5 rounded font-medium transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {resendingEmail ? 'Sending...' : '📧 Resend Verification Email'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {success && <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-lg text-green-300 text-sm">{success}</div>}
 
             <button

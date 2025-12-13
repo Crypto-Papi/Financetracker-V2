@@ -146,8 +146,8 @@ function Dashboard({
   const [activeSection, setActiveSection] = useState('dashboard')
   const [cashflowYear, setCashflowYear] = useState(new Date().getFullYear())
 
-  // Onboarding tour hook
-  const { startTour } = useOnboarding(setActiveSection)
+  // Onboarding tour hook - pass userId so each user gets their own onboarding
+  const { startTour } = useOnboarding(setActiveSection, userId)
   const [cashflowViewMode, setCashflowViewMode] = useState('category') // 'category' or 'type' (fixed vs flexible)
   const [budgetTab, setBudgetTab] = useState('budget') // 'budget' or 'forecast'
   const [liabilitiesTimeframe, setLiabilitiesTimeframe] = useState('1month') // '1month', '3months', '6months', '1year'

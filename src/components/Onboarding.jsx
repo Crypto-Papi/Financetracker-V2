@@ -2,7 +2,7 @@ import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useState } from 'react'
 
-const ONBOARDING_STORAGE_KEY = 'finance-tracker-onboarding-completed'
+const ONBOARDING_STORAGE_KEY_PREFIX = 'keel-onboarding-completed-'
 
 // Build tour steps with section navigation
 const buildTourSteps = (setActiveSection) => [
@@ -119,12 +119,26 @@ const buildTourSteps = (setActiveSection) => [
   }
 ]
 
-export function useOnboarding(setActiveSection) {
+export function useOnboarding(setActiveSection, userId) {
+  // Use user-specific key so each user gets their own onboarding
+  const storageKey = userId ? `${ONBOARDING_STORAGE_KEY_PREFIX}${userId}` : null
+
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(() => {
-    return localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true'
+    if (!storageKey) return true // Don't show onboarding if no user yet
+    return localStorage.getItem(storageKey) === 'true'
   })
 
+  // Update state when userId changes (user logs in)
+  useEffect(() => {
+    if (storageKey) {
+      const completed = localStorage.getItem(storageKey) === 'true'
+      setHasCompletedOnboarding(completed)
+    }
+  }, [storageKey])
+
   const startTour = useCallback(() => {
+    if (!storageKey) return // Don't start if no user
+
     const driverInstance = driver({
       showProgress: true,
       animate: false,  // Disable animations to prevent blur
@@ -140,7 +154,9 @@ export function useOnboarding(setActiveSection) {
       progressText: '{{current}} / {{total}}',
       popoverClass: 'finance-tracker-tour',
       onDestroyed: () => {
-        localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true')
+        if (storageKey) {
+          localStorage.setItem(storageKey, 'true')
+        }
         setHasCompletedOnboarding(true)
         // Navigate to transactions after tour completes
         setActiveSection('transactions')
@@ -148,22 +164,26 @@ export function useOnboarding(setActiveSection) {
     })
 
     driverInstance.drive()
-  }, [setActiveSection])
+  }, [setActiveSection, storageKey])
 
   const resetOnboarding = useCallback(() => {
-    localStorage.removeItem(ONBOARDING_STORAGE_KEY)
+    if (storageKey) {
+      localStorage.removeItem(storageKey)
+    }
     setHasCompletedOnboarding(false)
-  }, [])
+  }, [storageKey])
 
   // Auto-start tour for first-time users after a short delay
+  // Only trigger when we have a userId and haven't completed onboarding
   useEffect(() => {
+    if (!storageKey) return // Wait for user to be set
     if (!hasCompletedOnboarding) {
       const timer = setTimeout(() => {
         startTour()
-      }, 800)
+      }, 1200) // Slightly longer delay to ensure DOM is ready
       return () => clearTimeout(timer)
     }
-  }, [hasCompletedOnboarding, startTour])
+  }, [hasCompletedOnboarding, startTour, storageKey])
 
   return { hasCompletedOnboarding, startTour, resetOnboarding }
 }
