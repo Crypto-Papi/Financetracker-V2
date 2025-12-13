@@ -47,7 +47,17 @@ export function Auth({ auth, onAuthSuccess }) {
 
         // Send email verification
         await sendEmailVerification(user)
-        setSuccess('Account created! Please check your email to verify your account.')
+
+        // IMPORTANT: Sign out immediately after signup - user must verify email first
+        await auth.signOut()
+
+        setSuccess('✅ Account created! Please check your email (including spam folder) and click the verification link before signing in.')
+        setEmail('')
+        setPassword('')
+        setName('')
+        setIsSignUp(false) // Switch to sign-in mode
+        setLoading(false)
+        return // Don't call onAuthSuccess - user must verify first
       } else {
         // Sign in existing user
         const userCredential = await signInWithEmailAndPassword(auth, email, password)
@@ -59,7 +69,7 @@ export function Auth({ auth, onAuthSuccess }) {
           await sendEmailVerification(user)
           // Sign out the unverified user
           await auth.signOut()
-          setError('Please verify your email before signing in. A new verification email has been sent.')
+          setError('⚠️ Please verify your email before signing in. A new verification email has been sent to your inbox.')
           setLoading(false)
           return
         }
