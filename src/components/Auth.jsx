@@ -57,7 +57,13 @@ export function Auth({ auth, onAuthSuccess }) {
         })
 
         // Send email verification
-        await sendEmailVerification(user)
+        try {
+          await sendEmailVerification(user)
+          console.log('Verification email sent successfully to:', user.email)
+        } catch (emailError) {
+          console.error('Failed to send verification email:', emailError)
+          // Continue anyway - user can resend from VerifyEmail page
+        }
 
         // Don't sign out - let App.jsx handle showing the VerifyEmail page
         // This provides a smoother UX than signing out and making them log in again

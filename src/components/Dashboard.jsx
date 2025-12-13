@@ -625,8 +625,10 @@ function Dashboard({
       timeGreeting = 'Good evening'
     }
     // Get user name from profile or fallback to displayName or email
-    const userName = userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'there'
-    return `${timeGreeting}, ${userName}! 👋`
+    const fullName = userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'there'
+    // Extract just the first name (split by space and take first part)
+    const firstName = fullName.split(' ')[0]
+    return `${timeGreeting}, ${firstName}! 👋`
   }, [userProfile, user])
 
   // Check if user needs to complete their profile (no name set)
@@ -688,7 +690,9 @@ function Dashboard({
         name: profileNameInput.trim()
       }))
 
-      showNotification('Welcome to Keel, ' + profileNameInput.trim() + '! 🎉', 'success')
+      // Use just the first name in the welcome message
+      const firstName = profileNameInput.trim().split(' ')[0]
+      showNotification('Welcome to Keel, ' + firstName + '! 🎉', 'success')
       setShowCompleteProfileModal(false)
       setProfileNameInput('')
     } catch (error) {
