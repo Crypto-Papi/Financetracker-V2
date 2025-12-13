@@ -39,10 +39,10 @@ export function VerifyEmail({ user, auth, onBackToLogin }) {
       <div className="w-full max-w-md">
         <div className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-gray-700/50 text-center">
           {/* Logo */}
-          <img src="/keel-logo.png" alt="Keel" className="w-16 h-16 mx-auto mb-4" />
+          <img src="/keel-logo.png" alt="Keel" className="w-28 h-28 mx-auto mb-6" />
 
           {/* Title */}
-          <h1 className="text-2xl font-bold text-white mb-2">Verify Your Email</h1>
+          <h1 className="text-xl font-semibold text-white mb-2">Verify Your Email</h1>
           <p className="text-gray-400 mb-6">
             We've sent a verification link to:
           </p>

@@ -2640,10 +2640,7 @@ function Dashboard({
     <div className="min-h-screen bg-white text-gray-900 flex">
       {/* Sidebar Navigation */}
       <div id="sidebar-nav" className="w-64 bg-gray-50 border-r border-gray-200 p-6 fixed h-screen overflow-y-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <img src="/keel-logo.png" alt="Keel" className="w-10 h-10" />
-          <h2 className="text-2xl font-bold text-gray-900">Keel</h2>
-        </div>
+        <img src="/keel-logo.png" alt="Keel" className="w-28 h-auto mb-8" />
         <nav className="space-y-2">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: '📊' },
