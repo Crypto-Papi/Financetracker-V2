@@ -55,6 +55,9 @@ export function Auth({ auth, onAuthSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log('🚀 handleSubmit called, isSignUp:', isSignUp)
+    alert('Form submitted! isSignUp: ' + isSignUp)
+
     setError('')
     setSuccess('')
     setLoading(true)
@@ -68,9 +71,11 @@ export function Auth({ auth, onAuthSuccess }) {
           return
         }
 
+        console.log('📝 Creating user account for:', email)
         // Create user account
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         const user = userCredential.user
+        console.log('✅ User created:', user.uid)
 
         // Update user profile with display name
         await updateProfile(user, { displayName: name.trim() })
