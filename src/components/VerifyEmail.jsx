@@ -12,23 +12,13 @@ export function VerifyEmail({ user, auth, onBackToLogin }) {
     setResendSuccess(false)
 
     try {
-      console.log('📧 Attempting to send verification email to:', user?.email)
-      console.log('User object:', { uid: user?.uid, email: user?.email, emailVerified: user?.emailVerified })
-
       await sendEmailVerification(user)
-
-      console.log('✅ sendEmailVerification completed successfully!')
       setResendSuccess(true)
     } catch (error) {
-      console.error('❌ sendEmailVerification failed:', error)
-      console.error('Error code:', error.code)
-      console.error('Error message:', error.message)
-      console.error('Full error:', JSON.stringify(error, null, 2))
-
       if (error.code === 'auth/too-many-requests') {
         setResendError('Too many requests. Please wait a few minutes before trying again.')
       } else {
-        setResendError(`Failed: ${error.code || error.message || 'Unknown error'}`)
+        setResendError('Failed to send verification email. Please try again.')
       }
     } finally {
       setResendLoading(false)

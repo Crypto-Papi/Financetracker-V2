@@ -55,9 +55,6 @@ export function Auth({ auth, onAuthSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('🚀 handleSubmit called, isSignUp:', isSignUp)
-    alert('Form submitted! isSignUp: ' + isSignUp)
-
     setError('')
     setSuccess('')
     setLoading(true)
@@ -71,21 +68,16 @@ export function Auth({ auth, onAuthSuccess }) {
           return
         }
 
-        console.log('📝 Creating user account for:', email)
         // Create user account
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         const user = userCredential.user
-        console.log('✅ User created:', user.uid)
 
         // Update user profile with display name
-        console.log('📝 Updating profile...')
         await updateProfile(user, { displayName: name.trim() })
-        console.log('✅ Profile updated')
 
         // Save user profile to Firebase
         const db = getFirestore()
         const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
-        console.log('📝 Saving to Firestore profile...')
         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/info`)
         await setDoc(userProfileRef, {
           name: name.trim(),
@@ -93,11 +85,9 @@ export function Auth({ auth, onAuthSuccess }) {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         })
-        console.log('✅ Firestore profile saved')
 
         // Also save to flat mailing_list collection for easy export/email marketing
         // This is non-blocking - we don't want it to break signup if it fails
-        console.log('📝 Saving to mailing_list...')
         try {
           const mailingListRef = doc(db, `artifacts/${appId}/mailing_list/${user.uid}`)
           await setDoc(mailingListRef, {
@@ -108,23 +98,20 @@ export function Auth({ auth, onAuthSuccess }) {
             source: 'signup',
             marketingOptIn: true
           })
-          console.log('✅ Mailing list saved')
         } catch (mailingError) {
-          console.warn('⚠️ Mailing list save failed (non-critical):', mailingError.message)
-          // Continue anyway - this shouldn't block signup
+          console.warn('Mailing list save failed (non-critical):', mailingError.message)
         }
 
         // Send email verification
-        console.log('🔄 About to send verification email to:', user.email)
         try {
           await sendEmailVerification(user)
-          console.log('✅ Verification email sent successfully to:', user.email)
-          alert('✅ Verification email sent to ' + user.email + '! Check your inbox and spam folder.')
+          setSuccess('Account created! Verification email sent to ' + user.email)
         } catch (emailError) {
-          console.error('❌ Failed to send verification email:', emailError)
-          console.error('Error code:', emailError.code)
-          console.error('Error message:', emailError.message)
-          alert('❌ Failed to send email: ' + (emailError.code || emailError.message))
+          if (emailError.code === 'auth/too-many-requests') {
+            setError('Too many email requests. Please wait a few minutes.')
+          } else {
+            setSuccess('Account created! You can resend verification from the next screen.')
+          }
         }
 
         // Don't sign out - let App.jsx handle showing the VerifyEmail page
