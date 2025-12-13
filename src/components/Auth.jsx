@@ -78,11 +78,14 @@ export function Auth({ auth, onAuthSuccess }) {
         console.log('✅ User created:', user.uid)
 
         // Update user profile with display name
+        console.log('📝 Updating profile...')
         await updateProfile(user, { displayName: name.trim() })
+        console.log('✅ Profile updated')
 
         // Save user profile to Firebase
         const db = getFirestore()
         const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+        console.log('📝 Saving to Firestore profile...')
         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/info`)
         await setDoc(userProfileRef, {
           name: name.trim(),
@@ -90,8 +93,10 @@ export function Auth({ auth, onAuthSuccess }) {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         })
+        console.log('✅ Firestore profile saved')
 
         // Also save to flat mailing_list collection for easy export/email marketing
+        console.log('📝 Saving to mailing_list...')
         const mailingListRef = doc(db, `artifacts/${appId}/mailing_list/${user.uid}`)
         await setDoc(mailingListRef, {
           name: name.trim(),
@@ -101,6 +106,7 @@ export function Auth({ auth, onAuthSuccess }) {
           source: 'signup',
           marketingOptIn: true
         })
+        console.log('✅ Mailing list saved')
 
         // Send email verification
         console.log('🔄 About to send verification email to:', user.email)
