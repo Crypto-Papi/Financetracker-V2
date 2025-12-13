@@ -49,7 +49,20 @@ export function Auth({ auth, onAuthSuccess }) {
         await sendEmailVerification(user)
         setSuccess('Account created! Please check your email to verify your account.')
       } else {
-        await signInWithEmailAndPassword(auth, email, password)
+        // Sign in existing user
+        const userCredential = await signInWithEmailAndPassword(auth, email, password)
+        const user = userCredential.user
+
+        // Check if email is verified
+        if (!user.emailVerified) {
+          // Send another verification email
+          await sendEmailVerification(user)
+          // Sign out the unverified user
+          await auth.signOut()
+          setError('Please verify your email before signing in. A new verification email has been sent.')
+          setLoading(false)
+          return
+        }
       }
       setEmail('')
       setPassword('')

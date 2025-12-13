@@ -2,9 +2,73 @@ import { ResponsivePie } from '@nivo/pie'
 import { ResponsiveSankey } from '@nivo/sankey'
 import { updateProfile } from 'firebase/auth'
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import DebtPaidOffModal from './DebtPaidOffModal.jsx'
+import { useOnboarding } from './Onboarding.jsx'
+
+// Fast bill checkbox component with LOCAL state for instant UI response
+const BillCheckboxItem = React.memo(({ bill, initialPaid, onToggle, showDate, currentMonthLabel, dueDay }) => {
+  const [isPaid, setIsPaid] = useState(initialPaid)
+
+  const handleClick = useCallback((e) => {
+    e.stopPropagation()
+    setIsPaid(prev => !prev) // Instant local update
+    onToggle(bill.id) // Background update
+  }, [bill.id, onToggle])
+
+  // Sync with external state if it changes
+  useEffect(() => {
+    setIsPaid(initialPaid)
+  }, [initialPaid])
+
+  return (
+    <div
+      onClick={handleClick}
+      className={`group flex items-center justify-between px-5 py-4 rounded-xl transition-colors cursor-pointer ${
+        isPaid
+          ? 'bg-emerald-50 border border-emerald-100'
+          : 'bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200'
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+          isPaid
+            ? 'bg-emerald-500 border-emerald-500'
+            : 'border-slate-300 group-hover:border-indigo-400'
+        }`}>
+          {isPaid && (
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+        {showDate && (
+          <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm ${
+            isPaid
+              ? 'bg-emerald-100 text-emerald-600'
+              : 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white'
+          }`}>
+            <span className="text-[10px] uppercase font-semibold opacity-80">{currentMonthLabel}</span>
+            <span className="text-lg leading-none">{dueDay}</span>
+          </div>
+        )}
+        <div>
+          <p className={`font-semibold ${isPaid ? 'text-emerald-700 line-through' : 'text-slate-800'}`}>{bill.description}</p>
+          <p className={`text-sm ${isPaid ? 'text-emerald-600' : 'text-slate-500'}`}>{bill.category || 'Uncategorized'}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="text-right">
+          <p className={`font-bold text-lg ${isPaid ? 'text-emerald-600' : 'text-slate-800'}`}>
+            ${bill.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
+          </p>
+          {isPaid && <p className="text-xs text-emerald-500 font-medium">Paid ✓</p>}
+        </div>
+      </div>
+    </div>
+  )
+})
 
 // Helper to consistently handle transaction dates
 // Always treat YYYY-MM-DD strings as local dates to avoid timezone/UTC shifting
@@ -81,6 +145,9 @@ function Dashboard({
   const [notification, setNotification] = useState(null)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [cashflowYear, setCashflowYear] = useState(new Date().getFullYear())
+
+  // Onboarding tour hook
+  const { startTour } = useOnboarding(setActiveSection)
   const [cashflowViewMode, setCashflowViewMode] = useState('category') // 'category' or 'type' (fixed vs flexible)
   const [budgetTab, setBudgetTab] = useState('budget') // 'budget' or 'forecast'
   const [liabilitiesTimeframe, setLiabilitiesTimeframe] = useState('1month') // '1month', '3months', '6months', '1year'
@@ -497,22 +564,45 @@ function Dashboard({
 
 
 
-  // Load paid-off debts from localStorage on mount
+  // Load paid-off debts from Firebase on mount
   useEffect(() => {
-    const savedPaidOffDebts = localStorage.getItem('paidOffDebts')
-    if (savedPaidOffDebts) {
-      try {
-        setPaidOffDebts(JSON.parse(savedPaidOffDebts))
-      } catch (error) {
-        console.error('Error loading paid-off debts:', error)
+    if (!db || !userId) {
+      // Fallback to localStorage if no Firebase
+      const savedPaidOffDebts = localStorage.getItem('paidOffDebts')
+      if (savedPaidOffDebts) {
+        try {
+          setPaidOffDebts(JSON.parse(savedPaidOffDebts))
+        } catch (error) {
+          console.error('Error loading paid-off debts from localStorage:', error)
+        }
       }
+      return
     }
-  }, [])
-
-  // Save paid-off debts to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('paidOffDebts', JSON.stringify(paidOffDebts))
-  }, [paidOffDebts])
+    ;(async () => {
+      try {
+        const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+        const prefsRef = doc(db, `artifacts/${appId}/users/${userId}/preferences/settings`)
+        const prefsSnap = await getDoc(prefsRef)
+        if (prefsSnap.exists()) {
+          const data = prefsSnap.data()
+          if (data.paidOffDebts) {
+            setPaidOffDebts(data.paidOffDebts)
+          }
+        }
+      } catch (e) {
+        console.error('Error loading paid-off debts from Firebase:', e)
+        // Fallback to localStorage
+        const savedPaidOffDebts = localStorage.getItem('paidOffDebts')
+        if (savedPaidOffDebts) {
+          try {
+            setPaidOffDebts(JSON.parse(savedPaidOffDebts))
+          } catch (error) {
+            console.error('Error loading paid-off debts from localStorage:', error)
+          }
+        }
+      }
+    })()
+  }, [db, userId])
 
   // Show notification helper - memoized
   const showNotification = useCallback((message, type = 'success') => {
@@ -583,43 +673,42 @@ function Dashboard({
   }, [accountName, accountEmail, auth, db, userId, showNotification, setUserProfile])
 
   // Handle marking a debt as paid off - memoized
-  // When a debt is marked as paid off, delete the recurring transaction so it won't appear next month
+  // When a debt is marked as paid off, save to Firebase
+  // Note: We no longer delete the transaction - just track it as paid off so it persists
   const handleMarkDebtPaidOff = useCallback(async (debtId, debtName, transactionId) => {
     const newPaidOffState = !paidOffDebts[debtId]
-    setPaidOffDebts(prev => ({
-      ...prev,
+    const updatedPaidOffDebts = {
+      ...paidOffDebts,
       [debtId]: newPaidOffState
-    }))
+    }
+
+    // Update local state immediately
+    setPaidOffDebts(updatedPaidOffDebts)
+
+    // Save to localStorage as backup
+    localStorage.setItem('paidOffDebts', JSON.stringify(updatedPaidOffDebts))
+
+    // Save to Firebase
+    if (db && userId) {
+      try {
+        const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+        const prefsRef = doc(db, `artifacts/${appId}/users/${userId}/preferences/settings`)
+        await setDoc(prefsRef, { paidOffDebts: updatedPaidOffDebts, updatedAt: serverTimestamp() }, { merge: true })
+        console.log('Saved paidOffDebts to Firebase:', updatedPaidOffDebts)
+      } catch (error) {
+        console.error('Error saving paid-off debts to Firebase:', error)
+      }
+    }
 
     if (newPaidOffState) {
       // Show celebration modal with confetti
       setCelebratingDebtName(debtName)
       setShowDebtPaidOffModal(true)
-
-      // If this is a recurring transaction, delete it from Firebase
-      // so it won't appear in next month's transactions
-      if (transactionId) {
-        const transaction = transactions.find(t => t.id === transactionId)
-        if (transaction?.isRecurring) {
-          try {
-            if (db) {
-              const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
-              const transactionRef = doc(db, `artifacts/${appId}/users/${userId}/transactions/${transactionId}`)
-              await deleteDoc(transactionRef)
-              showNotification(`🎉 ${debtName} paid off! Recurring payment removed.`, 'success')
-            } else {
-              // Local state update
-              setTransactions(prev => prev.filter(t => t.id !== transactionId))
-              showNotification(`🎉 ${debtName} paid off! Recurring payment removed.`, 'success')
-            }
-          } catch (error) {
-            console.error('Error deleting recurring transaction:', error)
-            showNotification('Debt marked as paid off, but could not remove recurring payment', 'error')
-          }
-        }
-      }
+      showNotification(`🎉 ${debtName} marked as paid off!`, 'success')
+    } else {
+      showNotification(`${debtName} unmarked as paid off`, 'info')
     }
-  }, [paidOffDebts, transactions, db, userId, showNotification])
+  }, [paidOffDebts, db, userId, showNotification])
 
   // Handle month reset notification from App.jsx
   useEffect(() => {
@@ -2290,6 +2379,16 @@ function Dashboard({
     return days
   }, [currentMonth, billsByDueDate])
 
+  // Memoized today info for calendar - avoids creating new Date() on every cell render
+  const todayInfo = useMemo(() => {
+    const today = new Date()
+    return {
+      day: today.getDate(),
+      month: today.getMonth(),
+      year: today.getFullYear()
+    }
+  }, [])
+
   // Memoized bills list for calendar section - avoids heavy inline computation
   const billsThisMonth = useMemo(() => {
     return transactions.filter(t => {
@@ -2409,42 +2508,51 @@ function Dashboard({
     }
   }, [])
 
-  // Toggle paid status for a bill - memoized for performance
-  const handleTogglePaid = useCallback(async (transactionId) => {
+  // Pre-compute paid status for all bills to avoid repeated calculations during render
+  const paidBillsMap = useMemo(() => {
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+    const map = {}
+    transactions.forEach(t => {
+      if (t.paidDate) {
+        try {
+          const paidDate = new Date(t.paidDate)
+          map[t.id] = paidDate.getMonth() === currentMonth && paidDate.getFullYear() === currentYear
+        } catch (e) {
+          map[t.id] = false
+        }
+      } else {
+        map[t.id] = false
+      }
+    })
+    return map
+  }, [transactions])
+
+  // Toggle paid status for a bill - called from BillCheckboxItem (UI already updated locally)
+  const handleTogglePaid = useCallback((transactionId) => {
     if (!userId || !transactionId) return
 
-    // Ensure transactionId is a string
     const id = String(transactionId)
+    const timestamp = Date.now()
+    const isPaidNow = paidBillsMap[id] || false
+    const newPaidDate = isPaidNow ? null : timestamp
 
-    const transaction = transactions.find(t => String(t.id) === id)
-    if (!transaction) {
-      showNotification('Transaction not found', 'error')
-      return
-    }
-
-    const isPaid = isBillPaidThisMonth(transaction)
-    const newPaidDate = isPaid ? null : Date.now()
-
-    // Optimistic update - update UI immediately
+    // Update transactions in background
     setTransactions(prev => prev.map(t =>
       String(t.id) === id ? { ...t, paidDate: newPaidDate } : t
     ))
 
-    try {
-      if (db) {
-        const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
-        const transactionRef = doc(db, `artifacts/${appId}/users/${userId}/transactions`, id)
-        await updateDoc(transactionRef, { paidDate: newPaidDate })
-      }
-    } catch (error) {
-      console.error('Error updating payment status:', error)
-      // Revert optimistic update on error
-      setTransactions(prev => prev.map(t =>
-        String(t.id) === id ? { ...t, paidDate: transaction.paidDate } : t
-      ))
-      showNotification('Error updating payment status', 'error')
+    // Firebase update in background
+    if (db) {
+      const appId = window.__app_id || import.meta.env.VITE_APP_ID || 'finance-tracker-app'
+      const transactionRef = doc(db, `artifacts/${appId}/users/${userId}/transactions`, id)
+      updateDoc(transactionRef, { paidDate: newPaidDate }).catch(error => {
+        console.error('Error updating payment status:', error)
+        showNotification('Error updating payment status', 'error')
+      })
     }
-  }, [userId, transactions, db, showNotification])
+  }, [userId, db, showNotification, paidBillsMap, setTransactions])
 
   // Reset all bills for new month
   const handleResetAllBills = useCallback(async () => {
@@ -2531,7 +2639,7 @@ function Dashboard({
   return (
     <div className="min-h-screen bg-white text-gray-900 flex">
       {/* Sidebar Navigation */}
-      <div className="w-64 bg-gray-50 border-r border-gray-200 p-6 fixed h-screen overflow-y-auto">
+      <div id="sidebar-nav" className="w-64 bg-gray-50 border-r border-gray-200 p-6 fixed h-screen overflow-y-auto">
         <h2 className="text-2xl font-bold text-gray-900 mb-8">Finance Tracker</h2>
         <nav className="space-y-2">
           {[
@@ -2546,6 +2654,7 @@ function Dashboard({
             { id: 'goals', label: 'Debt Payoff', icon: '💳' },
           ].map((section) => (
             <button
+              id={`nav-${section.id}`}
               key={section.id}
               onClick={() => setActiveSection(section.id)}
               className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 font-medium ${activeSection === section.id ? 'bg-teal-600 text-white shadow-lg' : 'text-gray-700 hover:bg-gray-200'}`}
@@ -2589,8 +2698,19 @@ function Dashboard({
                 </p>
               </div>
 
-              {/* Account & Sign Out Buttons */}
+              {/* Account, Help & Sign Out Buttons */}
               <div className="flex items-center gap-3">
+                <button
+                  id="help-tour-btn"
+                  onClick={startTour}
+                  className="px-4 py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
+                  title="Take a tour of the app"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Help
+                </button>
                 <button
                   onClick={handleOpenAccountModal}
                   className="px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
@@ -2895,6 +3015,7 @@ function Dashboard({
                       </div>
                     </div>
                     <button
+                      id="add-transaction-btn"
                       onClick={() => {
                         setEditingId(null)
                         setDescription('')
@@ -6419,15 +6540,14 @@ function Dashboard({
 
                     {/* Calendar Days */}
                     {calendarData.map((day, index) => {
-                      const today = new Date()
-                      const isToday = day && day.day === today.getDate() && currentMonth.getMonth() === today.getMonth() && currentMonth.getFullYear() === today.getFullYear()
+                      const isToday = day && day.day === todayInfo.day && currentMonth.getMonth() === todayInfo.month && currentMonth.getFullYear() === todayInfo.year
                       const hasBills = day && day.bills.length > 0
 
                       return (
                         <div
                           key={index}
                           onClick={() => day && setSelectedDay(day)}
-                          className={`min-h-28 p-2.5 rounded-xl transition-all ${
+                          className={`min-h-28 p-2.5 rounded-xl transition-colors cursor-pointer ${
                             day === null
                               ? 'bg-slate-50/50'
                               : isToday
@@ -6885,60 +7005,15 @@ function Dashboard({
                           {selectedDay.bills.length > 0 ? (
                             <div className="space-y-3">
                               {selectedDay.bills.map((billSnapshot, idx) => {
-                                // Get fresh bill data from transactions state for real-time updates
                                 const bill = transactions.find(t => t.id === billSnapshot.id) || billSnapshot
-                                const isPaid = isBillPaidThisMonth(bill)
                                 return (
-                                  <div
-                                    key={idx}
-                                    onClick={() => handleTogglePaid(bill.id)}
-                                    className={`group flex items-center justify-between px-5 py-4 rounded-xl transition-all duration-200 cursor-pointer ${
-                                      isPaid
-                                        ? 'bg-emerald-50 border border-emerald-100'
-                                        : 'bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      {/* Checkbox circle */}
-                                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                                        isPaid
-                                          ? 'bg-emerald-500 border-emerald-500'
-                                          : 'border-slate-300 group-hover:border-indigo-400'
-                                      }`}>
-                                        {isPaid && (
-                                          <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                          </svg>
-                                        )}
-                                      </div>
-                                      <div>
-                                        <p className={`font-semibold transition-all ${isPaid ? 'text-emerald-700 line-through' : 'text-slate-800'}`}>{bill.description}</p>
-                                        <p className={`text-sm ${isPaid ? 'text-emerald-600' : 'text-slate-500'}`}>{bill.category || 'Uncategorized'}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <div className="text-right">
-                                        <p className={`font-bold text-lg ${isPaid ? 'text-emerald-600' : 'text-slate-800'}`}>
-                                          ${bill.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                        </p>
-                                        {isPaid && (
-                                          <span className="text-xs font-medium text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Paid</span>
-                                        )}
-                                      </div>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleEditTransaction(bill)
-                                        }}
-                                        className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                        title="Edit"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                  </div>
+                                  <BillCheckboxItem
+                                    key={bill.id || idx}
+                                    bill={bill}
+                                    initialPaid={paidBillsMap[bill.id] || false}
+                                    onToggle={handleTogglePaid}
+                                    showDate={false}
+                                  />
                                 )
                               })}
                             </div>
@@ -6972,67 +7047,17 @@ function Dashboard({
                 <div className="p-6">
                   {billsThisMonth.length > 0 ? (
                     <div className="space-y-3">
-                      {billsThisMonth.map((bill, idx) => {
-                        const isPaid = isBillPaidThisMonth(bill)
-                        return (
-                          <div
-                            key={bill.id || idx}
-                            onClick={() => handleTogglePaid(bill.id)}
-                            className={`group flex items-center justify-between px-5 py-4 rounded-xl transition-all duration-200 cursor-pointer ${
-                              isPaid
-                                ? 'bg-emerald-50 border border-emerald-100'
-                                : 'bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200'
-                            }`}
-                          >
-                            <div className="flex items-center gap-4">
-                              {/* Checkbox circle */}
-                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                                isPaid
-                                  ? 'bg-emerald-500 border-emerald-500'
-                                  : 'border-slate-300 group-hover:border-indigo-400'
-                              }`}>
-                                {isPaid && (
-                                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </div>
-                              {/* Date badge */}
-                              <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm ${
-                                isPaid
-                                  ? 'bg-emerald-100 text-emerald-600'
-                                  : 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white'
-                              }`}>
-                                <span className="text-[10px] uppercase font-semibold opacity-80">
-                                  {currentMonth.toLocaleDateString('en-US', { month: 'short' })}
-                                </span>
-                                <span className="text-lg leading-none">
-                                  {getBillDueDay(bill)}
-                                </span>
-                              </div>
-                              {/* Description and category */}
-                              <div>
-                                <p className={`font-semibold transition-all ${isPaid ? 'text-emerald-700 line-through' : 'text-slate-800'}`}>{bill.description}</p>
-                                <p className={`text-sm ${isPaid ? 'text-emerald-600' : 'text-slate-500'}`}>{bill.category || 'Uncategorized'}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <p className={`font-bold text-lg ${isPaid ? 'text-emerald-600' : 'text-slate-800'}`}>
-                                  ${bill.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                </p>
-                                {isPaid && (
-                                  <span className="text-xs font-medium text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Paid</span>
-                                )}
-                              </div>
-                              {/* Arrow indicator */}
-                              <svg className={`w-5 h-5 transition-all ${isPaid ? 'text-emerald-300' : 'text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                              </svg>
-                            </div>
-                          </div>
-                        )
-                      })}
+                      {billsThisMonth.map((bill, idx) => (
+                        <BillCheckboxItem
+                          key={bill.id || idx}
+                          bill={bill}
+                          initialPaid={paidBillsMap[bill.id] || false}
+                          onToggle={handleTogglePaid}
+                          showDate={true}
+                          currentMonthLabel={currentMonth.toLocaleDateString('en-US', { month: 'short' })}
+                          dueDay={getBillDueDay(bill)}
+                        />
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-12">
