@@ -113,7 +113,8 @@ export function Auth({ auth, onAuthSuccess }) {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-gray-700/50">
-            <h1 className="text-4xl font-bold text-center mb-2 text-white">🔐 Reset Password</h1>
+            <img src="/keel-logo.png" alt="Keel" className="w-16 h-16 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-center mb-2 text-white">Reset Password</h1>
             <p className="text-center text-gray-400 mb-8">Enter your email to receive a reset link</p>
 
             <form onSubmit={handleForgotPassword} className="space-y-4">
@@ -163,7 +164,8 @@ export function Auth({ auth, onAuthSuccess }) {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-gray-700/50">
-          <h1 className="text-4xl font-bold text-center mb-2 text-white">💰 Finance Tracker</h1>
+          <img src="/keel-logo.png" alt="Keel" className="w-20 h-20 mx-auto mb-4" />
+          <h1 className="text-4xl font-bold text-center mb-2 text-white">Keel</h1>
           <p className="text-center text-gray-400 mb-8">Manage your money, track your goals</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

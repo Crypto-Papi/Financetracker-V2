@@ -9,7 +9,7 @@ const buildTourSteps = (setActiveSection) => [
   {
     element: '#sidebar-nav',
     popover: {
-      title: 'Welcome to Finance Tracker! 👋',
+      title: 'Welcome to Keel! 👋',
       description: 'This is your navigation menu. Access all features from here. Let\'s take a quick tour!',
       side: 'right',
       align: 'start'
