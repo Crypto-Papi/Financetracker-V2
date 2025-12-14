@@ -9,11 +9,11 @@ export function LandingPage({ onGetStarted, onSignIn }) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const videoRef = useRef(null)
 
-  // Multiple video sources to cycle through for seamless experience
+  // Multiple video sources to cycle through for seamless experience - bright, daylight themes
   const videoSources = [
-    'https://assets.mixkit.co/videos/26716/26716-720.mp4', // Family at sunset on seashore
-    'https://assets.mixkit.co/videos/36780/36780-720.mp4', // Happy family at home
-    'https://assets.mixkit.co/videos/33541/33541-720.mp4', // Family in park
+    'https://assets.mixkit.co/videos/33729/33729-720.mp4', // Family walking in the park - bright daylight
+    'https://assets.mixkit.co/videos/33784/33784-720.mp4', // Parents playing with son in park - sunny
+    'https://assets.mixkit.co/videos/4874/4874-720.mp4',   // Mother and daughter reading in park - sunny day
   ]
 
   // Cycle through videos when one ends
