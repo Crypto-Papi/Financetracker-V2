@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import DebtPaidOffModal from './DebtPaidOffModal.jsx'
 import { useOnboarding } from './Onboarding.jsx'
+import { createPortalSession } from '../stripe'
 
 // Fast bill checkbox component with LOCAL state for instant UI response
 const BillCheckboxItem = React.memo(({ bill, initialPaid, onToggle, showDate, currentMonthLabel, dueDay }) => {
@@ -107,7 +108,9 @@ function Dashboard({
   firebaseStatus,
   firebaseError,
   monthResetNotification,
-  setMonthResetNotification
+  setMonthResetNotification,
+  isSubscribed,
+  isLifetimeFree
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
@@ -188,6 +191,19 @@ function Dashboard({
   const [accountName, setAccountName] = useState('')
   const [accountEmail, setAccountEmail] = useState('')
   const [accountSaving, setAccountSaving] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  // Handle opening Stripe Customer Portal
+  const handleManageSubscription = useCallback(async () => {
+    setPortalLoading(true)
+    try {
+      await createPortalSession(db, userId)
+    } catch (error) {
+      console.error('Error opening subscription portal:', error)
+      alert(error.message || 'Failed to open subscription management')
+      setPortalLoading(false)
+    }
+  }, [db, userId])
 
   // Complete Profile prompt (for users without a name)
   const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false)
@@ -7363,6 +7379,30 @@ function Dashboard({
                           'N/A'
                         }
                       </p>
+                    </div>
+                  </div>
+
+                  {/* Subscription Info */}
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-100">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Subscription</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {isLifetimeFree ? 'Lifetime Free' : isSubscribed ? 'Keel Pro' : 'No active subscription'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {isLifetimeFree ? 'Friends & Family plan' : isSubscribed ? '$4.99/month' : 'Subscribe for full access'}
+                        </p>
+                      </div>
+                      {!isLifetimeFree && isSubscribed && (
+                        <button
+                          onClick={handleManageSubscription}
+                          disabled={portalLoading}
+                          className="px-4 py-2 text-sm bg-white border border-purple-200 text-purple-600 font-medium rounded-lg hover:bg-purple-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {portalLoading ? 'Loading...' : 'Manage'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

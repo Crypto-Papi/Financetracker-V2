@@ -344,6 +344,8 @@ function App() {
       firebaseError={firebaseError}
       monthResetNotification={monthResetNotification}
       setMonthResetNotification={setMonthResetNotification}
+      isSubscribed={isSubscribed}
+      isLifetimeFree={isLifetimeFree}
     />
   )
 }

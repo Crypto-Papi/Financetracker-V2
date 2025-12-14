@@ -115,8 +115,37 @@ export async function checkSubscriptionStatus(db, userId, appId) {
 }
 
 /**
+ * Create a Stripe Customer Portal session for managing subscriptions
+ *
+ * @param {Object} db - Firestore database instance
+ * @param {string} userId - Current user's ID
+ * @returns {Promise<void>}
+ */
+export async function createPortalSession(db, userId) {
+  if (!db || !userId) {
+    throw new Error('Database and user ID are required')
+  }
+
+  const baseUrl = import.meta.env.VITE_APP_URL || 'https://financetracker-v2.vercel.app'
+
+  // The Firebase Stripe extension uses a callable function for portal sessions
+  // We need to call it via the extension's HTTP endpoint
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions()
+  const createPortalLink = httpsCallable(functions, 'ext-firestore-stripe-payments-createPortalLink')
+
+  try {
+    const { data } = await createPortalLink({ returnUrl: baseUrl })
+    window.location.assign(data.url)
+  } catch (error) {
+    console.error('Error creating portal session:', error)
+    throw new Error('Failed to open subscription management. Please try again.')
+  }
+}
+
+/**
  * Check if user is a "lifetime free" user (friends & family)
- * 
+ *
  * @param {Object} userProfile - User's profile data from Firestore
  * @returns {boolean}
  */
