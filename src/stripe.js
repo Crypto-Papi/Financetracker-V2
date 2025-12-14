@@ -42,28 +42,23 @@ export async function createCheckoutSession(db, userId, appId) {
     created: new Date()
   })
 
-  // Wait for the extension to add the sessionId
+  // Wait for the extension to add the checkout URL
   return new Promise((resolve, reject) => {
     const unsubscribe = onSnapshot(sessionDoc, async (snap) => {
       const data = snap.data()
-      
+
       if (data?.error) {
         unsubscribe()
         reject(new Error(data.error.message))
         return
       }
 
-      if (data?.sessionId) {
+      // The extension provides a 'url' field for redirect (redirectToCheckout is deprecated)
+      if (data?.url) {
         unsubscribe()
-        // Redirect to Stripe Checkout
-        const stripe = await getStripe()
-        const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId })
-        
-        if (error) {
-          reject(error)
-        } else {
-          resolve()
-        }
+        // Redirect to Stripe Checkout URL
+        window.location.assign(data.url)
+        resolve()
       }
     }, (error) => {
       unsubscribe()
