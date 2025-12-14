@@ -42,6 +42,7 @@ export async function createCheckoutSession(db, userId, appId) {
     success_url: `${baseUrl}?payment=success`,
     cancel_url: `${baseUrl}?payment=cancelled`,
     mode: 'subscription',
+    trial_period_days: 7,
     created: new Date()
   })
 

@@ -76,8 +76,11 @@ export function Paywall({ db, userId, userEmail, onLogout }) {
 
         {/* Price */}
         <div className="text-center mb-6">
+          <div className="inline-block bg-green-100 text-green-700 text-sm font-semibold px-3 py-1 rounded-full mb-2">
+            7-day free trial
+          </div>
           <div className="text-4xl font-bold text-purple-600">$4.99</div>
-          <div className="text-gray-500">per month</div>
+          <div className="text-gray-500">per month after trial</div>
         </div>
 
         {/* Error message */}
@@ -99,7 +102,7 @@ export function Paywall({ db, userId, userEmail, onLogout }) {
               Processing...
             </>
           ) : (
-            'Subscribe Now'
+            'Start Free Trial'
           )}
         </button>
 
