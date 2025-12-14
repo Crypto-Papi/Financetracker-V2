@@ -41,7 +41,10 @@ export function useSubscription(db, userId, userProfile, appId) {
     // Listen to user's subscriptions collection
     // Path must match Firebase Stripe extension's "Customer details and subscriptions collection" setting
     const subscriptionsRef = collection(db, `customers/${userId}/subscriptions`)
-    const q = query(subscriptionsRef, where('status', 'in', ['active', 'trialing']))
+
+    // Check for active, trialing, OR past_due (give grace period)
+    // Also need to check canceled subscriptions that haven't reached period end yet
+    const q = query(subscriptionsRef, where('status', 'in', ['active', 'trialing', 'past_due']))
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
@@ -51,11 +54,39 @@ export function useSubscription(db, userId, userProfile, appId) {
           id: snapshot.docs[0].id,
           ...subscriptionData
         })
+        setIsLoading(false)
       } else {
-        setIsSubscribed(false)
-        setSubscription(null)
+        // No active subscription found, but check if there's a canceled one
+        // that still has access until period end
+        const canceledQuery = query(subscriptionsRef)
+        onSnapshot(canceledQuery, (allSubs) => {
+          let hasAccess = false
+          let accessibleSub = null
+
+          allSubs.docs.forEach(doc => {
+            const data = doc.data()
+            // Check if subscription was canceled but period hasn't ended yet
+            if (data.cancel_at_period_end && data.current_period_end) {
+              const periodEnd = data.current_period_end.toDate ?
+                data.current_period_end.toDate() :
+                new Date(data.current_period_end.seconds * 1000)
+
+              if (periodEnd > new Date()) {
+                hasAccess = true
+                accessibleSub = { id: doc.id, ...data }
+              }
+            }
+          })
+
+          setIsSubscribed(hasAccess)
+          setSubscription(accessibleSub)
+          setIsLoading(false)
+        }, () => {
+          setIsSubscribed(false)
+          setSubscription(null)
+          setIsLoading(false)
+        })
       }
-      setIsLoading(false)
     }, (err) => {
       console.error('Error checking subscription:', err)
       setError(err.message)
