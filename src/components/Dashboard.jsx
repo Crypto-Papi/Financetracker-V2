@@ -7404,6 +7404,11 @@ function Dashboard({
                         </button>
                       )}
                     </div>
+                    {portalLoading && (
+                      <p className="text-xs text-purple-500 mt-2 animate-pulse">
+                        Opening subscription portal... This may take a few seconds.
+                      </p>
+                    )}
                   </div>
                 </div>
 
