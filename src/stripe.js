@@ -31,7 +31,8 @@ export async function createCheckoutSession(db, userId, appId) {
 
   // Create a checkout session in Firestore
   // The Firebase extension listens to this collection and creates the Stripe session
-  const checkoutSessionsRef = collection(db, `artifacts/${appId}/users/${userId}/checkout_sessions`)
+  // Path must match the extension's "Customer details and subscriptions collection" setting
+  const checkoutSessionsRef = collection(db, `customers/${userId}/checkout_sessions`)
   
   const sessionDoc = await addDoc(checkoutSessionsRef, {
     price: STRIPE_PRICE_ID,
@@ -92,7 +93,8 @@ export async function checkSubscriptionStatus(db, userId, appId) {
 
   try {
     // Check the subscriptions subcollection
-    const subscriptionsRef = collection(db, `artifacts/${appId}/users/${userId}/subscriptions`)
+    // Path must match the extension's "Customer details and subscriptions collection" setting
+    const subscriptionsRef = collection(db, `customers/${userId}/subscriptions`)
     const q = query(subscriptionsRef, where('status', 'in', ['active', 'trialing']))
     const snapshot = await getDocs(q)
 
