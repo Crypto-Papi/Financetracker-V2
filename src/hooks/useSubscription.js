@@ -39,7 +39,8 @@ export function useSubscription(db, userId, userProfile, appId) {
     setError(null)
 
     // Listen to user's subscriptions collection
-    const subscriptionsRef = collection(db, `artifacts/${appId}/users/${userId}/subscriptions`)
+    // Path must match Firebase Stripe extension's "Customer details and subscriptions collection" setting
+    const subscriptionsRef = collection(db, `customers/${userId}/subscriptions`)
     const q = query(subscriptionsRef, where('status', 'in', ['active', 'trialing']))
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
