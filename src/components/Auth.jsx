@@ -233,7 +233,16 @@ export function Auth({ auth, onAuthSuccess }) {
       <div className="w-full max-w-md">
         <div className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-gray-700/50">
           <img src="/keel-logo.png" alt="Keel" className="w-32 h-32 mx-auto mb-6" />
-          <p className="text-center text-gray-400 mb-8">Manage your money, track your goals</p>
+
+          {isSignUp ? (
+            <>
+              <h2 className="text-center text-xl font-bold text-white mb-2">Start Your Free Trial</h2>
+              <p className="text-center text-gray-400 mb-2">7 days free, then $4.99/month</p>
+              <p className="text-center text-gray-500 text-sm mb-6">Cancel anytime. No commitment.</p>
+            </>
+          ) : (
+            <p className="text-center text-gray-400 mb-8">Welcome back! Sign in to continue.</p>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
@@ -299,9 +308,13 @@ export function Auth({ auth, onAuthSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors cursor-pointer"
+              className={`w-full py-3 font-semibold rounded-lg transition-colors cursor-pointer ${
+                isSignUp
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              } disabled:bg-gray-600`}
             >
-              {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
+              {loading ? 'Loading...' : isSignUp ? 'Start Free Trial →' : 'Sign In'}
             </button>
           </form>
 
@@ -331,16 +344,33 @@ export function Auth({ auth, onAuthSuccess }) {
                 }}
                 className="ml-2 text-blue-400 hover:text-blue-300 font-semibold cursor-pointer"
               >
-                {isSignUp ? 'Sign In' : 'Sign Up'}
+                {isSignUp ? 'Sign In' : 'Start Free Trial'}
               </button>
             </p>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-xs text-blue-300">
-              💡 <strong>Tip:</strong> Create an account to save your data securely in the cloud. A verification email will be sent to confirm your address.
-            </p>
-          </div>
+          {isSignUp && (
+            <div className="mt-6 space-y-2">
+              <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Unlimited transaction tracking</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Budgeting & insights</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Debt payoff planner</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
