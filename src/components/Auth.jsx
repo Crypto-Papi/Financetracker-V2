@@ -2,11 +2,11 @@ import { createUserWithEmailAndPassword, sendEmailVerification, sendPasswordRese
 import { doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
 import { useState } from 'react'
 
-export function Auth({ auth, onAuthSuccess }) {
+export function Auth({ auth, onAuthSuccess, initialIsSignUp = false }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(initialIsSignUp)
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')

@@ -6,6 +6,7 @@ import { Auth } from './components/Auth'
 import Dashboard from './components/Dashboard'
 import { VerifyEmail } from './components/VerifyEmail'
 import { Paywall } from './components/Paywall'
+import { LandingPage } from './components/LandingPage'
 import { useSubscription } from './hooks/useSubscription'
 
 // Initialize Firebase
@@ -47,6 +48,8 @@ function App() {
   const [firebaseStatus, setFirebaseStatus] = useState('connecting') // 'connecting', 'connected', 'error'
   const [firebaseError, setFirebaseError] = useState(null)
   const [monthResetNotification, setMonthResetNotification] = useState(null)
+  const [showAuthForm, setShowAuthForm] = useState(false) // Controls whether to show Auth or Landing page
+  const [isSignUp, setIsSignUp] = useState(true) // Controls whether Auth shows sign up or sign in
 
   // Check subscription status
   const {
@@ -280,7 +283,29 @@ function App() {
   }
 
   if (!user && !isDevelopment) {
-    return <Auth auth={auth} onAuthSuccess={() => {}} />
+    // Show Auth form if user clicked "Get Started" or "Sign In" from landing page
+    if (showAuthForm) {
+      return (
+        <Auth
+          auth={auth}
+          onAuthSuccess={() => setShowAuthForm(false)}
+          initialIsSignUp={isSignUp}
+        />
+      )
+    }
+    // Show landing page for non-authenticated users
+    return (
+      <LandingPage
+        onGetStarted={() => {
+          setIsSignUp(true)
+          setShowAuthForm(true)
+        }}
+        onSignIn={() => {
+          setIsSignUp(false)
+          setShowAuthForm(true)
+        }}
+      />
+    )
   }
 
   // Check if user needs to verify email (only for real Firebase users, not dev mode)

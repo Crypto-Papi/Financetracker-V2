@@ -2,9 +2,46 @@ import { useState, useEffect } from 'react'
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore'
 import { isLifetimeFreeUser } from '../stripe'
 
+// Cache key for subscription status
+const SUBSCRIPTION_CACHE_KEY = 'keel-subscription-cache'
+
+/**
+ * Get cached subscription status to prevent paywall flash on return from Stripe
+ */
+function getCachedSubscription(userId) {
+  try {
+    const cached = localStorage.getItem(SUBSCRIPTION_CACHE_KEY)
+    if (cached) {
+      const data = JSON.parse(cached)
+      // Only use cache if it's for the same user and less than 5 minutes old
+      if (data.userId === userId && Date.now() - data.timestamp < 5 * 60 * 1000) {
+        return data.isSubscribed
+      }
+    }
+  } catch (e) {
+    // Ignore cache errors
+  }
+  return null
+}
+
+/**
+ * Cache subscription status
+ */
+function setCachedSubscription(userId, isSubscribed) {
+  try {
+    localStorage.setItem(SUBSCRIPTION_CACHE_KEY, JSON.stringify({
+      userId,
+      isSubscribed,
+      timestamp: Date.now()
+    }))
+  } catch (e) {
+    // Ignore cache errors
+  }
+}
+
 /**
  * Custom hook to check user's subscription status
- * 
+ *
  * Returns:
  * - hasAccess: true if user can access premium content (subscribed OR lifetime free)
  * - isLoading: true while checking subscription status
@@ -14,8 +51,10 @@ import { isLifetimeFreeUser } from '../stripe'
  * - error: error message if any
  */
 export function useSubscription(db, userId, userProfile, appId) {
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubscribed, setIsSubscribed] = useState(false)
+  // Initialize with cached value to prevent flash
+  const cachedStatus = getCachedSubscription(userId)
+  const [isLoading, setIsLoading] = useState(cachedStatus === null)
+  const [isSubscribed, setIsSubscribed] = useState(cachedStatus || false)
   const [subscription, setSubscription] = useState(null)
   const [error, setError] = useState(null)
 
@@ -50,6 +89,7 @@ export function useSubscription(db, userId, userProfile, appId) {
       if (!snapshot.empty) {
         const subscriptionData = snapshot.docs[0].data()
         setIsSubscribed(true)
+        setCachedSubscription(userId, true)
         setSubscription({
           id: snapshot.docs[0].id,
           ...subscriptionData
@@ -79,10 +119,12 @@ export function useSubscription(db, userId, userProfile, appId) {
           })
 
           setIsSubscribed(hasAccess)
+          setCachedSubscription(userId, hasAccess)
           setSubscription(accessibleSub)
           setIsLoading(false)
         }, () => {
           setIsSubscribed(false)
+          setCachedSubscription(userId, false)
           setSubscription(null)
           setIsLoading(false)
         })
