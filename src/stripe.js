@@ -129,9 +129,8 @@ export async function createPortalSession(db, userId) {
   const baseUrl = import.meta.env.VITE_APP_URL || 'https://financetracker-v2.vercel.app'
 
   // The Firebase Stripe extension uses a callable function for portal sessions
-  // We need to call it via the extension's HTTP endpoint
   const { getFunctions, httpsCallable } = await import('firebase/functions')
-  const functions = getFunctions()
+  const functions = getFunctions(undefined, 'us-central1')
   const createPortalLink = httpsCallable(functions, 'ext-firestore-stripe-payments-createPortalLink')
 
   try {
