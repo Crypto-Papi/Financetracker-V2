@@ -35,7 +35,7 @@ export async function createCheckoutSession(db, userId, appId) {
   const checkoutSessionsRef = collection(db, `customers/${userId}/checkout_sessions`)
   
   // Use production URL for redirects (can be overridden via env var)
-  const baseUrl = import.meta.env.VITE_APP_URL || 'https://financetracker-v2.vercel.app'
+  const baseUrl = import.meta.env.VITE_APP_URL || 'https://keelfinances.com'
 
   const sessionDoc = await addDoc(checkoutSessionsRef, {
     price: STRIPE_PRICE_ID,
@@ -127,7 +127,7 @@ export async function createPortalSession(db, userId) {
     throw new Error('Database and user ID are required')
   }
 
-  const baseUrl = import.meta.env.VITE_APP_URL || 'https://financetracker-v2.vercel.app'
+  const baseUrl = import.meta.env.VITE_APP_URL || 'https://keelfinances.com'
 
   // The Firebase Stripe extension uses a callable function for portal sessions
   const { getFunctions, httpsCallable } = await import('firebase/functions')
