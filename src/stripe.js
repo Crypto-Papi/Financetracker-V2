@@ -34,10 +34,13 @@ export async function createCheckoutSession(db, userId, appId) {
   // Path must match the extension's "Customer details and subscriptions collection" setting
   const checkoutSessionsRef = collection(db, `customers/${userId}/checkout_sessions`)
   
+  // Use production URL for redirects (can be overridden via env var)
+  const baseUrl = import.meta.env.VITE_APP_URL || 'https://financetracker-v2.vercel.app'
+
   const sessionDoc = await addDoc(checkoutSessionsRef, {
     price: STRIPE_PRICE_ID,
-    success_url: window.location.origin + '?payment=success',
-    cancel_url: window.location.origin + '?payment=cancelled',
+    success_url: `${baseUrl}?payment=success`,
+    cancel_url: `${baseUrl}?payment=cancelled`,
     mode: 'subscription',
     created: new Date()
   })
