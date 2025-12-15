@@ -122,7 +122,7 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               Try Keel Free for 7 Days
             </button>
           </div>
-          <p className="mt-4 text-gray-400 text-sm">No credit card required to start</p>
+          <p className="mt-4 text-gray-400 text-sm">7-day free trial • Cancel anytime</p>
         </div>
 
         {/* Scroll indicator */}
