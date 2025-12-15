@@ -34,50 +34,50 @@ export function BlogPage({ onBack, onNavigate, onGetStarted }) {
   return (
     <PageLayout onBack={onBack} onNavigate={onNavigate}>
       {/* Hero Section */}
-      <div className="text-center mb-16">
-        <div className="inline-block bg-purple-500/20 text-purple-400 text-sm font-semibold px-4 py-2 rounded-full mb-4">
+      <div className="text-center mb-20">
+        <div className="inline-block bg-[#635bff]/10 text-[#635bff] text-sm font-semibold px-4 py-2 rounded-full mb-6">
           BLOG
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 text-[#0a2540]">
           The Keel Blog
         </h1>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Tips, insights, and strategies to help you master your money.
         </p>
       </div>
 
       {/* Coming Soon Notice */}
-      <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-6 mb-12 text-center">
-        <span className="text-2xl mb-2 block">✨</span>
-        <h3 className="font-semibold text-purple-400 mb-2">Blog Coming Soon!</h3>
-        <p className="text-gray-400">
+      <div className="bg-gradient-to-br from-[#635bff]/5 to-[#00d4ff]/5 border-2 border-[#635bff]/20 rounded-3xl p-10 mb-16 text-center">
+        <span className="text-4xl mb-4 block">✨</span>
+        <h3 className="font-bold text-2xl text-[#635bff] mb-3">Blog Coming Soon!</h3>
+        <p className="text-gray-600 text-lg">
           We're working on helpful content to support your financial journey. Check back soon!
         </p>
       </div>
 
       {/* Preview Posts */}
-      <div className="grid md:grid-cols-2 gap-6 mb-16">
+      <div className="grid md:grid-cols-2 gap-6 mb-20">
         {posts.map((post, index) => (
-          <div key={index} className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700/50 opacity-75">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">{post.category}</span>
+          <div key={index} className="bg-white rounded-2xl p-8 border border-gray-200 opacity-60 hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs bg-[#f6f9fc] text-[#635bff] font-medium px-3 py-1 rounded-full">{post.category}</span>
               <span className="text-xs text-gray-500">{post.date}</span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">{post.title}</h3>
-            <p className="text-gray-400 text-sm">{post.excerpt}</p>
+            <h3 className="text-xl font-bold mb-3 text-[#0a2540]">{post.title}</h3>
+            <p className="text-gray-600">{post.excerpt}</p>
           </div>
         ))}
       </div>
 
       {/* CTA Section */}
-      <div className="text-center bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl p-12 border border-purple-500/30">
-        <h2 className="text-3xl font-bold mb-4">Don't wait for the blog</h2>
-        <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+      <div className="text-center bg-gradient-to-br from-[#635bff] to-[#00d4ff] rounded-3xl p-16 shadow-2xl">
+        <h2 className="text-4xl font-bold mb-6 text-white">Don't wait for the blog</h2>
+        <p className="text-white/90 text-lg mb-10 max-w-xl mx-auto">
           Start improving your finances today with Keel's intuitive tools.
         </p>
         <button
           onClick={onGetStarted}
-          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all cursor-pointer"
+          className="px-10 py-5 bg-white text-[#635bff] rounded-full text-lg font-medium hover:bg-gray-50 transition-all shadow-xl"
         >
           Try Keel Free for 7 Days
         </button>

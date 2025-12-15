@@ -40,45 +40,45 @@ export function BudgetingPage({ onBack, onNavigate, onGetStarted }) {
   return (
     <PageLayout onBack={onBack} onNavigate={onNavigate}>
       {/* Hero Section */}
-      <div className="text-center mb-16">
-        <div className="inline-block bg-green-500/20 text-green-400 text-sm font-semibold px-4 py-2 rounded-full mb-4">
+      <div className="text-center mb-20">
+        <div className="inline-block bg-[#00d4ff]/10 text-[#00d4ff] text-sm font-semibold px-4 py-2 rounded-full mb-6">
           FEATURES
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 text-[#0a2540] leading-tight">
           Budgeting That{' '}
-          <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#00d4ff] to-[#7c3aed] bg-clip-text text-transparent">
             Actually Works
           </span>
         </h1>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-          Create flexible budgets that adapt to your life. No more rigid spreadsheets or 
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          Create flexible budgets that adapt to your life. No more rigid spreadsheets or
           complicated formulas—just simple, effective money management.
         </p>
       </div>
 
       {/* Features Grid */}
-      <div className="grid md:grid-cols-2 gap-8 mb-16">
+      <div className="grid md:grid-cols-2 gap-6 mb-20">
         {features.map((feature, index) => (
           <div
             key={index}
-            className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700/50 hover:border-green-500/50 transition-all"
+            className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-[#00d4ff] hover:shadow-xl transition-all"
           >
-            <div className="text-3xl mb-4">{feature.icon}</div>
-            <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-            <p className="text-gray-400">{feature.description}</p>
+            <div className="text-4xl mb-6">{feature.icon}</div>
+            <h3 className="text-xl font-bold mb-3 text-[#0a2540]">{feature.title}</h3>
+            <p className="text-gray-600 leading-relaxed">{feature.description}</p>
           </div>
         ))}
       </div>
 
       {/* CTA Section */}
-      <div className="text-center bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-3xl p-12 border border-green-500/30">
-        <h2 className="text-3xl font-bold mb-4">Start budgeting smarter</h2>
-        <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+      <div className="text-center bg-gradient-to-br from-[#00d4ff] to-[#7c3aed] rounded-3xl p-16 shadow-2xl">
+        <h2 className="text-4xl font-bold mb-6 text-white">Start budgeting smarter</h2>
+        <p className="text-white/90 text-lg mb-10 max-w-xl mx-auto">
           Join thousands who have transformed their finances with Keel's intuitive budgeting tools.
         </p>
         <button
           onClick={onGetStarted}
-          className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full text-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all cursor-pointer"
+          className="px-10 py-5 bg-white text-[#00d4ff] rounded-full text-lg font-medium hover:bg-gray-50 transition-all shadow-xl"
         >
           Try Keel Free for 7 Days
         </button>

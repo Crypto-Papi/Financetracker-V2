@@ -4,9 +4,9 @@ import { updateProfile } from 'firebase/auth'
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { createPortalSession } from '../stripe'
 import DebtPaidOffModal from './DebtPaidOffModal.jsx'
 import { useOnboarding } from './Onboarding.jsx'
-import { createPortalSession } from '../stripe'
 import PlaidLinkButton from './PlaidLink.jsx'
 
 // Fast bill checkbox component with LOCAL state for instant UI response
@@ -49,7 +49,7 @@ const BillCheckboxItem = React.memo(({ bill, initialPaid, onToggle, showDate, cu
           <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm ${
             isPaid
               ? 'bg-emerald-100 text-emerald-600'
-              : 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white'
+              : 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white'
           }`}>
             <span className="text-[10px] uppercase font-semibold opacity-80">{currentMonthLabel}</span>
             <span className="text-lg leading-none">{dueDay}</span>
@@ -2837,9 +2837,9 @@ function Dashboard({
 
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex">
+    <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex">
       {/* Sidebar Navigation */}
-      <div id="sidebar-nav" className="w-64 bg-gray-50 border-r border-gray-200 p-6 fixed h-screen overflow-y-auto">
+      <div id="sidebar-nav" className="w-64 bg-white border-r border-gray-200 p-6 fixed h-screen overflow-y-auto">
         <img src="/keel-logo.png" alt="Keel" className="w-28 h-auto mb-8" />
         <nav className="space-y-2">
           {[
@@ -2857,7 +2857,7 @@ function Dashboard({
               id={`nav-${section.id}`}
               key={section.id}
               onClick={() => setActiveSection(section.id)}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 font-medium ${activeSection === section.id ? 'bg-teal-600 text-white shadow-lg' : 'text-gray-700 hover:bg-gray-200'}`}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 font-medium ${activeSection === section.id ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
             >
               <span className="text-xl">{section.icon}</span>
               {section.label}
@@ -2903,7 +2903,7 @@ function Dashboard({
                 <button
                   id="help-tour-btn"
                   onClick={startTour}
-                  className="px-4 py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
                   title="Take a tour of the app"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2913,7 +2913,7 @@ function Dashboard({
                 </button>
                 <button
                   onClick={handleOpenAccountModal}
-                  className="px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
                   title="My Account"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2923,7 +2923,7 @@ function Dashboard({
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
                   title="Sign out"
                 >
                   Sign Out
@@ -2945,7 +2945,7 @@ function Dashboard({
                 {/* Left Column - Spending and Cashflow */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Spending Chart - Daily Comparison */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <p className="text-gray-600 text-sm font-medium">Spending — {spendingChartMeta.currentMonthName} {spendingChartMeta.currentYear}</p>
@@ -3026,7 +3026,7 @@ function Dashboard({
                   </div>
 
                   {/* Monthly Cashflow */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <p className="text-gray-600 text-sm font-medium">Cashflow — {cashflowChartMeta.currentMonthName} {cashflowChartMeta.currentYear}</p>
@@ -3085,20 +3085,13 @@ function Dashboard({
                   </div>
 
                   {/* Recent Transactions */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-6 py-4">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Recent Transactions</h3>
-                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
                         <button
                           onClick={() => setActiveSection('transactions')}
-                          className="text-white/80 hover:text-white font-medium text-sm flex items-center gap-1 cursor-pointer"
+                          className="text-gray-600 hover:text-gray-900 font-medium text-sm flex items-center gap-1 cursor-pointer"
                         >
                           View all
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -3131,20 +3124,13 @@ function Dashboard({
                 {/* Right Column - Upcoming Bills */}
                 <div className="space-y-6">
                   {/* Upcoming Bills */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-500 px-6 py-4">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Upcoming Bills</h3>
-                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">Upcoming Bills</h3>
                         <button
                           onClick={() => setActiveSection('calendar')}
-                          className="text-white/80 hover:text-white font-medium text-sm flex items-center gap-1 cursor-pointer"
+                          className="text-gray-600 hover:text-gray-900 font-medium text-sm flex items-center gap-1 cursor-pointer"
                         >
                           Calendar
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -3200,19 +3186,12 @@ function Dashboard({
           {activeSection === 'transactions' && (
             <div className="space-y-6">
               {/* Modern Header Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 px-6 py-5">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-white">Transactions</h2>
-                        <p className="text-slate-300 text-sm">{sortedFilteredTransactions.length} {sortedFilteredTransactions.length === 1 ? 'transaction' : 'transactions'} found</p>
-                      </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Transactions</h2>
+                      <p className="text-gray-600 text-sm mt-1">{sortedFilteredTransactions.length} {sortedFilteredTransactions.length === 1 ? 'transaction' : 'transactions'} found</p>
                     </div>
                     <button
                       id="add-transaction-btn"
@@ -3419,23 +3398,12 @@ function Dashboard({
               {isEditing && !selectedDay && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(8px)' }}>
                   <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-100">
-                    {/* Modern Gradient Header */}
-                    <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 px-6 py-5">
+                    {/* Modal Header */}
+                    <div className="px-6 py-5 border-b border-gray-100">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              {editingId ? (
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              ) : (
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                              )}
-                            </svg>
-                          </div>
-                          <div>
-                            <h2 className="text-xl font-bold text-white">{editingId ? 'Edit Transaction' : 'Add Transaction'}</h2>
-                            <p className="text-slate-300 text-sm">Enter transaction details below</p>
-                          </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-gray-900">{editingId ? 'Edit Transaction' : 'Add Transaction'}</h2>
+                          <p className="text-gray-600 text-sm mt-1">Enter transaction details below</p>
                         </div>
                         <button
                           onClick={() => {
@@ -3449,9 +3417,9 @@ function Dashboard({
                             setRemainingBalance('')
                             setInterestRate('')
                           }}
-                          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                         >
-                          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
@@ -3847,7 +3815,7 @@ function Dashboard({
                               showNotification('Error saving transaction', 'error')
                             }
                           }}
-                          className="flex-1 px-6 py-3.5 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl cursor-pointer flex items-center justify-center gap-2"
+                          className="flex-1 px-6 py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -3866,20 +3834,13 @@ function Dashboard({
           {activeSection === 'cashflow' && (
             <div className="space-y-6">
               {/* Cashflow Chart */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                {/* Modern Header */}
-                <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 px-8 py-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-gray-100">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-white">Cash Flow Overview</h2>
-                        <p className="text-emerald-100 text-sm">Income vs Expenses by month</p>
-                      </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Cash Flow Overview</h2>
+                      <p className="text-gray-600 text-sm mt-1">Income vs Expenses by month</p>
                     </div>
                     {/* Year Navigation */}
                     <div className="flex items-center gap-3">
@@ -4050,17 +4011,10 @@ function Dashboard({
               {cashflowViewMode === 'category' && (
                 <div className="space-y-6">
                   {/* Income Section */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="bg-gradient-to-r from-emerald-500 to-emerald-400 px-6 py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                          </svg>
-                        </div>
-                        <h4 className="text-base font-semibold text-white">Income</h4>
-                      </div>
-                      <span className="text-lg font-bold text-white">
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900">Income</h4>
+                      <span className="text-lg font-bold text-emerald-600">
                         ${currentMonthStats.income.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -4101,17 +4055,10 @@ function Dashboard({
                   </div>
 
                   {/* Expenses Section */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="bg-gradient-to-r from-red-500 to-rose-400 px-6 py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                          </svg>
-                        </div>
-                        <h4 className="text-base font-semibold text-white">Expenses</h4>
-                      </div>
-                      <span className="text-lg font-bold text-white">
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900">Expenses</h4>
+                      <span className="text-lg font-bold text-red-600">
                         ${currentMonthStats.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -4157,17 +4104,10 @@ function Dashboard({
               {cashflowViewMode === 'type' && (
                 <div className="space-y-6">
                   {/* Fixed Expenses Section */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="bg-gradient-to-r from-slate-600 to-slate-500 px-6 py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </div>
-                        <h4 className="text-base font-semibold text-white">Fixed Expenses</h4>
-                      </div>
-                      <span className="text-lg font-bold text-white">
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900">Fixed Expenses</h4>
+                      <span className="text-lg font-bold text-gray-900">
                         ${spendingTypeBreakdown.fixed.reduce((sum, item) => sum + item.actual, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -4211,17 +4151,10 @@ function Dashboard({
                   </div>
 
                   {/* Flexible Expenses Section */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        </div>
-                        <h4 className="text-base font-semibold text-white">Flexible Expenses</h4>
-                      </div>
-                      <span className="text-lg font-bold text-white">
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900">Flexible Expenses</h4>
+                      <span className="text-lg font-bold text-gray-900">
                         ${spendingTypeBreakdown.flexible.reduce((sum, item) => sum + item.actual, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -4306,19 +4239,10 @@ function Dashboard({
               {/* Simple Budget Overview */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Spending by Category Card - Left (2 columns) */}
-                <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                  <div className="bg-gradient-to-r from-violet-600 via-violet-500 to-purple-500 px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">Spending by Category</h3>
-                        <p className="text-violet-200 text-sm">Set budgets for each category</p>
-                      </div>
-                    </div>
+                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="px-6 py-5 border-b border-gray-100">
+                    <h3 className="text-xl font-bold text-gray-900">Spending by Category</h3>
+                    <p className="text-gray-600 text-sm mt-1">Set budgets for each category</p>
                   </div>
                   <div className="p-6">
 
@@ -4466,19 +4390,10 @@ function Dashboard({
                 </div>
 
                 {/* Monthly Overview Card - Right (1 column) */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden h-fit">
-                  <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-white">Monthly Budget</h3>
-                        <p className="text-teal-100 text-sm">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-                      </div>
-                    </div>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+                  <div className="px-6 py-4 border-b border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-900">Monthly Budget</h3>
+                    <p className="text-gray-600 text-sm mt-1">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
                   </div>
                   <div className="p-6">
 
@@ -4559,18 +4474,11 @@ function Dashboard({
 
               {/* Add/Edit Goal Form - Monarch Style */}
               {showGoalForm && (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                   {/* Header */}
-                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-                        <span className="text-2xl">💰</span>
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{editingGoalId ? 'Edit Goal' : 'Create New Savings Goal'}</h3>
-                        <p className="text-amber-100 text-sm">Set aside money each month for your financial dreams</p>
-                      </div>
-                    </div>
+                  <div className="px-6 py-5 border-b border-gray-100">
+                    <h3 className="text-xl font-bold text-gray-900">{editingGoalId ? 'Edit Goal' : 'Create New Savings Goal'}</h3>
+                    <p className="text-gray-600 text-sm mt-1">Set aside money each month for your financial dreams</p>
                   </div>
 
                   <div className="p-8">
@@ -4656,7 +4564,7 @@ function Dashboard({
 
                     {/* Preview Card */}
                     {goalName && goalTargetAmount && (
-                      <div className="mb-8 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                      <div className="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Preview</p>
                         <div className="flex items-center justify-between mb-3">
                           <span className="font-bold text-gray-900">{goalName}</span>
@@ -4664,7 +4572,7 @@ function Dashboard({
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all"
+                            className="bg-gray-900 h-full rounded-full transition-all"
                             style={{ width: `${Math.min(100, ((parseFloat(goalCurrent) || 0) / (parseFloat(goalTargetAmount) || 1)) * 100)}%` }}
                           ></div>
                         </div>
@@ -4742,14 +4650,14 @@ function Dashboard({
                     const isComplete = progress >= 100
 
                     return (
-                      <div key={goal.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
-                        {/* Card Header with Gradient */}
-                        <div className={`px-6 pt-5 pb-4 ${isComplete ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}>
+                      <div key={goal.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
+                        {/* Card Header */}
+                        <div className="px-6 py-4 border-b border-gray-100">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h3 className="text-xl font-bold text-white tracking-tight">{goal.name}</h3>
+                              <h3 className="text-xl font-bold text-gray-900">{goal.name}</h3>
                               {isComplete && (
-                                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-white/20 rounded-full text-xs font-medium text-white">
+                                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-green-50 rounded-full text-xs font-medium text-green-700">
                                   ✓ Goal Complete!
                                 </span>
                               )}
@@ -4765,7 +4673,7 @@ function Dashboard({
                                   setEditingGoalId(goal.id)
                                   setShowGoalForm(true)
                                 }}
-                                className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+                                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                                 title="Edit goal"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4786,7 +4694,7 @@ function Dashboard({
                                   })
                                   setShowDeleteConfirmModal(true)
                                 }}
-                                className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+                                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                                 title="Delete goal"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4835,7 +4743,7 @@ function Dashboard({
                             <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-500 ${
-                                  isComplete ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'
+                                  isComplete ? 'bg-green-500' : 'bg-gray-900'
                                 }`}
                                 style={{ width: `${Math.min(progress, 100)}%` }}
                               ></div>
@@ -4900,15 +4808,15 @@ function Dashboard({
                   })}
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-16 text-center">
-                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gray-100 flex items-center justify-center">
                     <span className="text-4xl">💰</span>
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">No Savings Goals Yet</h3>
                   <p className="text-gray-500 mb-8 max-w-md mx-auto">Create your first savings goal to start tracking progress toward your financial dreams</p>
                   <button
                     onClick={() => setShowGoalForm(true)}
-                    className="px-8 py-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg cursor-pointer"
+                    className="px-8 py-4 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer"
                   >
                     + Create Your First Goal
                   </button>
@@ -4918,18 +4826,13 @@ function Dashboard({
               {/* Add Money Modal - Monarch Style */}
               {showAddMoneyModal && addMoneyGoalId && addMoneyModalData && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(8px)' }}>
-                  <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden">
+                  <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden">
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
+                    <div className="px-6 py-5 border-b border-gray-100">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                            <span className="text-xl">💰</span>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-white">Add Money</h3>
-                            <p className="text-amber-100 text-sm">{addMoneyModalData.goal.name}</p>
-                          </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">Add Money</h3>
+                          <p className="text-gray-600 text-sm mt-1">{addMoneyModalData.goal.name}</p>
                         </div>
                         <button
                           onClick={() => {
@@ -4937,9 +4840,9 @@ function Dashboard({
                             setAddMoneyGoalId(null)
                             setAddMoneyAmount('')
                           }}
-                          className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+                          className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
@@ -4954,7 +4857,7 @@ function Dashboard({
                           <span className="text-sm font-bold text-amber-600">{Math.round(addMoneyModalData.currentProgress)}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full" style={{ width: `${Math.min(addMoneyModalData.currentProgress, 100)}%` }}></div>
+                          <div className="bg-gray-900 h-full rounded-full" style={{ width: `${Math.min(addMoneyModalData.currentProgress, 100)}%` }}></div>
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
                           <span className="font-semibold text-gray-900">${addMoneyModalData.goal.current.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -4981,15 +4884,15 @@ function Dashboard({
 
                       {/* New Total Preview */}
                       {addMoneyAmount && !isNaN(addMoneyAmount) && parseFloat(addMoneyAmount) > 0 && (
-                        <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-100">
+                        <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                           <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">New Total</span>
-                            <span className="text-sm font-bold text-amber-600">{Math.round(addMoneyModalData.newProgress)}%</span>
+                            <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">New Total</span>
+                            <span className="text-sm font-bold text-gray-900">{Math.round(addMoneyModalData.newProgress)}%</span>
                           </div>
-                          <div className="w-full bg-amber-200 rounded-full h-2 overflow-hidden mb-3">
-                            <div className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all" style={{ width: `${Math.min(addMoneyModalData.newProgress, 100)}%` }}></div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-3">
+                            <div className="bg-gray-900 h-full rounded-full transition-all" style={{ width: `${Math.min(addMoneyModalData.newProgress, 100)}%` }}></div>
                           </div>
-                          <p className="text-2xl font-bold text-amber-700">
+                          <p className="text-2xl font-bold text-gray-900">
                             ${addMoneyModalData.newTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </p>
                           {addMoneyModalData.newProgress >= 100 && (
@@ -5041,18 +4944,13 @@ function Dashboard({
               {/* Edit Amount Modal - Monarch Style */}
               {showEditAmountModal && editAmountGoalId && editAmountModalData && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(8px)' }}>
-                  <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden">
+                  <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden">
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-violet-500 to-violet-600 px-6 py-5">
+                    <div className="px-6 py-5 border-b border-gray-100">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                            <span className="text-xl">✏️</span>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-white">Edit Amount</h3>
-                            <p className="text-violet-100 text-sm">{editAmountModalData.goal.name}</p>
-                          </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">Edit Amount</h3>
+                          <p className="text-gray-600 text-sm mt-1">{editAmountModalData.goal.name}</p>
                         </div>
                         <button
                           onClick={() => {
@@ -5060,9 +4958,9 @@ function Dashboard({
                             setEditAmountGoalId(null)
                             setEditAmount('')
                           }}
-                          className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+                          className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
@@ -5102,13 +5000,13 @@ function Dashboard({
 
                       {/* Progress Preview */}
                       {editAmount && !isNaN(editAmount) && parseFloat(editAmount) >= 0 && (
-                        <div className={`mb-6 p-4 rounded-xl border ${editAmountModalData.newProgress >= 100 ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-100' : 'bg-gradient-to-r from-violet-50 to-purple-50 border-violet-100'}`}>
+                        <div className={`mb-6 p-4 rounded-xl border ${editAmountModalData.newProgress >= 100 ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'}`}>
                           <div className="flex items-center justify-between mb-3">
-                            <span className={`text-xs font-semibold uppercase tracking-wide ${editAmountModalData.newProgress >= 100 ? 'text-green-700' : 'text-violet-700'}`}>New Progress</span>
-                            <span className={`text-lg font-bold ${editAmountModalData.newProgress >= 100 ? 'text-green-600' : 'text-violet-600'}`}>{Math.round(editAmountModalData.newProgress)}%</span>
+                            <span className={`text-xs font-semibold uppercase tracking-wide ${editAmountModalData.newProgress >= 100 ? 'text-green-700' : 'text-gray-700'}`}>New Progress</span>
+                            <span className={`text-lg font-bold ${editAmountModalData.newProgress >= 100 ? 'text-green-600' : 'text-gray-900'}`}>{Math.round(editAmountModalData.newProgress)}%</span>
                           </div>
-                          <div className={`w-full rounded-full h-3 overflow-hidden ${editAmountModalData.newProgress >= 100 ? 'bg-green-200' : 'bg-violet-200'}`}>
-                            <div className={`h-full rounded-full transition-all ${editAmountModalData.newProgress >= 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-violet-400 to-purple-500'}`} style={{ width: `${Math.min(editAmountModalData.newProgress, 100)}%` }}></div>
+                          <div className={`w-full rounded-full h-3 overflow-hidden ${editAmountModalData.newProgress >= 100 ? 'bg-green-200' : 'bg-gray-200'}`}>
+                            <div className={`h-full rounded-full transition-all ${editAmountModalData.newProgress >= 100 ? 'bg-green-500' : 'bg-gray-900'}`} style={{ width: `${Math.min(editAmountModalData.newProgress, 100)}%` }}></div>
                           </div>
                           <p className={`text-sm mt-2 ${editAmountModalData.newProgress >= 100 ? 'text-green-600' : 'text-gray-600'}`}>
                             <span className="font-semibold">${parseFloat(editAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -5165,28 +5063,21 @@ function Dashboard({
           {/* Debt Payoff Comparison Modal */}
           {showDebtPayoffComparison && payoffComparison && (
             <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(8px)' }}>
-              <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
-                {/* Header - Modern Gradient Style */}
-                <div className="sticky top-0 bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-500 px-8 py-6 flex items-center justify-between z-10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Compare Payoff Strategies</h2>
-                      <p className="text-teal-100 text-sm">Choose the method that works best for you</p>
-                    </div>
+              <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
+                {/* Header */}
+                <div className="sticky top-0 bg-white px-6 py-5 border-b border-gray-100 flex items-center justify-between z-10">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Compare Payoff Strategies</h2>
+                    <p className="text-gray-600 text-sm mt-1">Choose the method that works best for you</p>
                   </div>
                   <button
                     onClick={() => {
                       setShowDebtPayoffComparison(false)
                       setSelectedPayoffMethod(null)
                     }}
-                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer"
+                    className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                   >
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -5461,25 +5352,18 @@ function Dashboard({
           {/* Debt Payoff Section */}
           {activeSection === 'goals' && (
             <div className="space-y-6">
-              {/* Header - Modern Gradient Style */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-500 px-8 py-6">
+              {/* Header */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-white">Debt Payoff Strategy</h2>
-                        <p className="text-teal-100 text-sm">
-                          {chosenPayoffMethod
-                            ? `Using ${chosenPayoffMethod === 'snowball' ? 'Snowball' : 'Avalanche'} method`
-                            : 'Compare methods to find your optimal payoff strategy'
-                          }
-                        </p>
-                      </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Debt Payoff Strategy</h2>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {chosenPayoffMethod
+                          ? `Using ${chosenPayoffMethod === 'snowball' ? 'Snowball' : 'Avalanche'} method`
+                          : 'Compare methods to find your optimal payoff strategy'
+                        }
+                      </p>
                     </div>
                     <button
                       onClick={() => {
@@ -5491,7 +5375,7 @@ function Dashboard({
                           showNotification('No debts found. Add debt transactions with interest rates to compare payoff methods.', 'error')
                         }
                       }}
-                      className="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white font-medium rounded-xl transition-colors cursor-pointer flex items-center gap-2 backdrop-blur"
+                      className="px-5 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-xl transition-colors cursor-pointer flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -5853,52 +5737,36 @@ function Dashboard({
           {activeSection === 'accounts' && (
             <div className="space-y-6">
               {/* Net Worth Chart - Monarch Style */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 px-8 py-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                          </svg>
-                        </div>
-                        <p className="text-blue-100 text-sm font-medium uppercase tracking-wide">Net Worth</p>
-                      </div>
-                      <div className="flex items-baseline gap-3">
-                        <h2 className="text-4xl font-bold text-white">
+                      <p className="text-gray-600 text-sm font-medium">Net Worth</p>
+                      <div className="flex items-baseline gap-3 mt-1">
+                        <h2 className="text-3xl font-bold text-gray-900">
                           {netWorth.netWorth >= 0 ? '' : '-'}${Math.abs(netWorth.netWorth).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </h2>
                         {/* Change indicator */}
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${
-                          netWorth.netWorth >= 0 ? 'bg-white/20 text-white' : 'bg-amber-400/30 text-amber-100'
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                          netWorth.netWorth >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                         }`}>
-                          {netWorth.netWorth >= 0 ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          )}
-                          <span>{netWorth.netWorth >= 0 ? 'Positive' : 'In Debt'}</span>
+                          {netWorth.netWorth >= 0 ? 'Positive' : 'In Debt'}
                         </div>
                       </div>
-                      <p className="text-blue-100 text-sm mt-2">
-                        Assets: <span className="text-white font-medium">${netWorth.assets.toLocaleString()}</span> •
-                        Liabilities: <span className="text-amber-200 font-medium">${netWorth.totalLiabilities.toLocaleString()}</span>
+                      <p className="text-gray-600 text-sm mt-2">
+                        Assets: <span className="text-gray-900 font-medium">${netWorth.assets.toLocaleString()}</span> •
+                        Liabilities: <span className="text-gray-900 font-medium">${netWorth.totalLiabilities.toLocaleString()}</span>
                       </p>
                     </div>
                     <select
                       value={liabilitiesTimeframe}
                       onChange={(e) => setLiabilitiesTimeframe(e.target.value)}
-                      className="px-4 py-2 border border-white/20 rounded-xl bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 text-sm font-medium cursor-pointer"
+                      className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm font-medium cursor-pointer"
                     >
-                      <option value="1month" className="text-gray-900">1 month</option>
-                      <option value="3months" className="text-gray-900">3 months</option>
-                      <option value="6months" className="text-gray-900">6 months</option>
-                      <option value="1year" className="text-gray-900">1 year</option>
+                      <option value="1month">1 month</option>
+                      <option value="3months">3 months</option>
+                      <option value="6months">6 months</option>
+                      <option value="1year">1 year</option>
                     </select>
                   </div>
                 </div>
@@ -6020,18 +5888,13 @@ function Dashboard({
               </div>
 
               {/* Connect Bank Account Section */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
-                <div className="bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                      <span className="text-lg">🏦</span>
-                    </div>
-                    <h3 className="text-base font-semibold text-white">Connected Accounts</h3>
-                  </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Connected Accounts</h3>
                   <PlaidLinkButton
                     userId={userId}
                     onSuccess={handlePlaidSuccess}
-                    className="px-4 py-2 bg-white text-teal-600 rounded-lg font-medium hover:bg-teal-50 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -6120,15 +5983,10 @@ function Dashboard({
                 <div className="lg:col-span-2 space-y-6">
                   {/* Credit Cards */}
                   {accountsByType.creditCards.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                      <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <span className="text-lg">💳</span>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Credit Cards</h3>
-                        </div>
-                        <span className="text-lg font-bold text-white">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">💳 Credit Cards</h3>
+                        <span className="text-lg font-bold text-gray-900">
                           ${accountsByType.creditCards.reduce((sum, card) => sum + card.balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -6153,15 +6011,10 @@ function Dashboard({
 
                   {/* Loans */}
                   {accountsByType.loans.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                      <div className="bg-gradient-to-r from-blue-500 to-blue-400 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <span className="text-lg">🏦</span>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Loans</h3>
-                        </div>
-                        <span className="text-lg font-bold text-white">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">🏦 Loans</h3>
+                        <span className="text-lg font-bold text-gray-900">
                           ${accountsByType.loans.reduce((sum, loan) => sum + loan.balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -6186,15 +6039,10 @@ function Dashboard({
 
                   {/* Auto Loans */}
                   {accountsByType.autoLoans.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                      <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <span className="text-lg">🚗</span>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Auto Loans</h3>
-                        </div>
-                        <span className="text-lg font-bold text-white">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">🚗 Auto Loans</h3>
+                        <span className="text-lg font-bold text-gray-900">
                           ${accountsByType.autoLoans.reduce((sum, loan) => sum + loan.balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -6219,15 +6067,10 @@ function Dashboard({
 
                   {/* Student Loans */}
                   {accountsByType.studentLoans.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                      <div className="bg-gradient-to-r from-violet-500 to-purple-400 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <span className="text-lg">🎓</span>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Student Loans</h3>
-                        </div>
-                        <span className="text-lg font-bold text-white">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">🎓 Student Loans</h3>
+                        <span className="text-lg font-bold text-gray-900">
                           ${accountsByType.studentLoans.reduce((sum, loan) => sum + loan.balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -6252,15 +6095,10 @@ function Dashboard({
 
                   {/* Other Debts */}
                   {accountsByType.otherDebts.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                      <div className="bg-gradient-to-r from-slate-600 to-slate-500 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <span className="text-lg">⚠️</span>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Other Debts</h3>
-                        </div>
-                        <span className="text-lg font-bold text-white">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">⚠️ Other Debts</h3>
+                        <span className="text-lg font-bold text-gray-900">
                           ${accountsByType.otherDebts.reduce((sum, debt) => sum + debt.balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -6285,15 +6123,10 @@ function Dashboard({
 
                   {/* Assets */}
                   {accountsByType.assets.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                      <div className="bg-gradient-to-r from-emerald-500 to-teal-400 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <span className="text-lg">💰</span>
-                          </div>
-                          <h3 className="text-base font-semibold text-white">Assets</h3>
-                        </div>
-                        <span className="text-lg font-bold text-white">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">💰 Assets</h3>
+                        <span className="text-lg font-bold text-gray-900">
                           ${accountsByType.assets.reduce((sum, asset) => sum + asset.balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -6315,16 +6148,9 @@ function Dashboard({
                 </div>
 
                 {/* Right Column - Summary */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden h-fit">
-                  <div className="bg-gradient-to-r from-gray-700 to-gray-600 px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-base font-semibold text-white">Summary</h3>
-                    </div>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+                  <div className="px-6 py-4 border-b border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-900">Summary</h3>
                   </div>
                   <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -6438,18 +6264,11 @@ function Dashboard({
           {activeSection === 'reports' && (
             <div className="space-y-6">
               {/* Header with Tabs */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-fuchsia-600 via-purple-500 to-violet-500 px-8 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Reports & Analytics</h2>
-                      <p className="text-purple-200 text-sm">Visualize your financial data</p>
-                    </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Reports & Analytics</h2>
+                    <p className="text-gray-600 text-sm mt-1">Visualize your financial data</p>
                   </div>
                 </div>
                 <div className="px-6 py-4 flex gap-2 border-b border-gray-100">
@@ -6781,41 +6600,35 @@ function Dashboard({
           {/* Calendar Section */}
           {activeSection === 'calendar' && (
             <div className="space-y-6">
-              {/* Calendar Header - Modern Indigo Theme */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                {/* Gradient Header Bar */}
-                <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 px-8 py-6">
+              {/* Calendar Header */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-                        <span className="text-2xl">📅</span>
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-white">
-                          {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                        </h2>
-                        <p className="text-indigo-100 text-sm mt-0.5">
-                          {calendarHeaderStats.displayText}
-                        </p>
-                      </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </h2>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {calendarHeaderStats.displayText}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-                        className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-all backdrop-blur cursor-pointer flex items-center gap-1"
+                        className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium rounded-xl transition-all cursor-pointer flex items-center gap-1"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         Prev
                       </button>
                       <button
                         onClick={() => setCurrentMonth(new Date())}
-                        className="px-4 py-2.5 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-indigo-50 transition-all cursor-pointer"
+                        className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md"
                       >
                         Today
                       </button>
                       <button
                         onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-                        className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-all backdrop-blur cursor-pointer flex items-center gap-1"
+                        className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium rounded-xl transition-all cursor-pointer flex items-center gap-1"
                       >
                         Next
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -6845,22 +6658,22 @@ function Dashboard({
                           onClick={() => day && setSelectedDay(day)}
                           className={`min-h-28 p-2.5 rounded-xl transition-colors cursor-pointer ${
                             day === null
-                              ? 'bg-slate-50/50'
+                              ? 'bg-gray-50/50'
                               : isToday
-                              ? 'bg-gradient-to-br from-indigo-50 to-purple-50 ring-2 ring-indigo-400 ring-offset-2 cursor-pointer hover:shadow-lg'
+                              ? 'bg-gray-100 ring-2 ring-gray-900 ring-offset-2 cursor-pointer hover:shadow-md'
                               : hasBills
-                              ? 'bg-slate-50 hover:bg-indigo-50 cursor-pointer hover:shadow-md border border-slate-100 hover:border-indigo-200'
-                              : 'bg-white hover:bg-slate-50 cursor-pointer border border-slate-100 hover:border-slate-200'
+                              ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer hover:shadow-sm border border-gray-100 hover:border-gray-200'
+                              : 'bg-white hover:bg-gray-50 cursor-pointer border border-gray-100 hover:border-gray-200'
                           }`}
                         >
                           {day && (
                             <>
                               <div className={`flex items-center gap-1.5 mb-2`}>
-                                <span className={`text-sm font-bold ${isToday ? 'text-indigo-600' : 'text-slate-700'}`}>
+                                <span className={`text-sm font-bold ${isToday ? 'text-gray-900' : 'text-gray-700'}`}>
                                   {day.day}
                                 </span>
                                 {isToday && (
-                                  <span className="text-[10px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                                  <span className="text-[10px] font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wide">
                                     Today
                                   </span>
                                 )}
@@ -6904,16 +6717,9 @@ function Dashboard({
                     {/* If editing a transaction, show edit form */}
                     {editingId && isEditing ? (
                       <>
-                        {/* Edit Form Header - Indigo Gradient */}
-                        <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 px-6 py-5 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-                              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </div>
-                            <h2 className="text-xl font-bold text-white">Edit Transaction</h2>
-                          </div>
+                        {/* Edit Form Header */}
+                        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                          <h2 className="text-xl font-bold text-gray-900">Edit Transaction</h2>
                           <button
                             onClick={() => {
                               setSelectedDay(null)
@@ -6928,9 +6734,9 @@ function Dashboard({
                               setRemainingBalance('')
                               setInterestRate('')
                             }}
-                            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all cursor-pointer"
+                            className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                           >
-                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
@@ -7269,29 +7075,24 @@ function Dashboard({
                       </>
                     ) : (
                       <>
-                        {/* Bills List View - Modern Indigo Theme */}
-                        <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 px-6 py-5 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-                              <span className="text-xl">📋</span>
-                            </div>
-                            <div>
-                              <h2 className="text-xl font-bold text-white">
-                                {selectedDay.day === new Date().getDate() && currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()
-                                  ? `Today - ${currentMonth.toLocaleDateString('en-US', { month: 'long' })} ${selectedDay.day}`
-                                  : `${currentMonth.toLocaleDateString('en-US', { month: 'long' })} ${selectedDay.day}, ${currentMonth.getFullYear()}`
-                                }
-                              </h2>
-                              <p className="text-indigo-100 text-sm">
-                                {selectedDay.bills.length} bill{selectedDay.bills.length !== 1 ? 's' : ''} • ${selectedDay.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
+                        {/* Bills List View */}
+                        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                          <div>
+                            <h2 className="text-xl font-bold text-gray-900">
+                              {selectedDay.day === new Date().getDate() && currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()
+                                ? `Today - ${currentMonth.toLocaleDateString('en-US', { month: 'long' })} ${selectedDay.day}`
+                                : `${currentMonth.toLocaleDateString('en-US', { month: 'long' })} ${selectedDay.day}, ${currentMonth.getFullYear()}`
+                              }
+                            </h2>
+                            <p className="text-gray-600 text-sm mt-1">
+                              {selectedDay.bills.length} bill{selectedDay.bills.length !== 1 ? 's' : ''} • ${selectedDay.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </p>
                           </div>
                           <button
                             onClick={() => setSelectedDay(null)}
-                            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all cursor-pointer"
+                            className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                           >
-                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
@@ -7329,16 +7130,11 @@ function Dashboard({
                 </div>
               )}
 
-              {/* Bills List - Modern Indigo Theme */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-6 py-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-                    <span className="text-xl">📋</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white">All Bills This Month</h3>
-                    <p className="text-slate-300 text-sm">Click to mark as paid</p>
-                  </div>
+              {/* Bills List */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-900">All Bills This Month</h3>
+                  <p className="text-gray-600 text-sm mt-1">Click to mark as paid</p>
                 </div>
                 <div className="p-6">
                   {billsThisMonth.length > 0 ? (
@@ -7384,17 +7180,12 @@ function Dashboard({
           {/* Delete Confirmation Modal */}
           {showDeleteConfirmModal && deleteConfirmData && (
             <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(8px)' }}>
-              <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden">
+              <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-red-500 to-rose-500 px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                      <span className="text-xl">⚠️</span>
-                    </div>
-                    <h3 className="text-lg font-bold text-white">
-                      Delete {deleteConfirmData.type === 'transaction' ? 'Transaction' : deleteConfirmData.type === 'goal' ? 'Goal' : 'Item'}?
-                    </h3>
-                  </div>
+                <div className="px-6 py-5 border-b border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Delete {deleteConfirmData.type === 'transaction' ? 'Transaction' : deleteConfirmData.type === 'goal' ? 'Goal' : 'Item'}?
+                  </h3>
                 </div>
 
                 <div className="p-6">
@@ -7442,7 +7233,7 @@ function Dashboard({
                           showNotification('Error deleting item', 'error')
                         }
                       }}
-                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-sm font-medium rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer"
+                      className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer"
                     >
                       Delete
                     </button>
@@ -7463,9 +7254,9 @@ function Dashboard({
           {/* Complete Profile Modal - shown when user has no name set */}
           {showCompleteProfileModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5">
+                <div className="px-6 py-5 border-b border-gray-100">
                   <div className="flex items-center justify-center">
                     <img src="/keel-logo.png" alt="Keel" className="w-16 h-16" />
                   </div>
@@ -7499,7 +7290,7 @@ function Dashboard({
                   <button
                     onClick={handleSaveProfileName}
                     disabled={profileSaving || !profileNameInput.trim()}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {profileSaving ? 'Saving...' : 'Continue →'}
                   </button>
@@ -7511,19 +7302,14 @@ function Dashboard({
           {/* My Account Modal */}
           {showAccountModal && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4">
+                <div className="px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      My Account
-                    </h2>
+                    <h2 className="text-xl font-bold text-gray-900">My Account</h2>
                     <button
                       onClick={() => setShowAccountModal(false)}
-                      className="text-white/80 hover:text-white transition-colors cursor-pointer"
+                      className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                     >
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -7580,7 +7366,7 @@ function Dashboard({
                   </div>
 
                   {/* Subscription Info */}
-                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-100">
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Subscription</h3>
                     <div className="flex items-center justify-between">
                       <div>
@@ -7595,14 +7381,14 @@ function Dashboard({
                         <button
                           onClick={handleManageSubscription}
                           disabled={portalLoading}
-                          className="px-4 py-2 text-sm bg-white border border-purple-200 text-purple-600 font-medium rounded-lg hover:bg-purple-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 text-sm bg-white border border-gray-200 text-gray-900 font-medium rounded-lg hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {portalLoading ? 'Loading...' : 'Manage'}
                         </button>
                       )}
                     </div>
                     {portalLoading && (
-                      <p className="text-xs text-purple-500 mt-2 animate-pulse">
+                      <p className="text-xs text-gray-600 mt-2 animate-pulse">
                         Opening subscription portal... This may take a few seconds.
                       </p>
                     )}
@@ -7620,7 +7406,7 @@ function Dashboard({
                   <button
                     onClick={handleSaveAccountChanges}
                     disabled={accountSaving}
-                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {accountSaving ? 'Saving...' : 'Save Changes'}
                   </button>

@@ -42,37 +42,37 @@ export function HelpCenterPage({ onBack, onNavigate }) {
   return (
     <PageLayout onBack={onBack} onNavigate={onNavigate}>
       {/* Hero Section */}
-      <div className="text-center mb-16">
-        <div className="inline-block bg-blue-500/20 text-blue-400 text-sm font-semibold px-4 py-2 rounded-full mb-4">
+      <div className="text-center mb-20">
+        <div className="inline-block bg-[#00d4ff]/10 text-[#00d4ff] text-sm font-semibold px-4 py-2 rounded-full mb-6">
           SUPPORT
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 text-[#0a2540]">
           Help Center
         </h1>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Find answers to common questions about using Keel.
         </p>
       </div>
 
       {/* FAQs */}
-      <div className="space-y-6 mb-16">
+      <div className="space-y-4 mb-20">
         {faqs.map((faq, index) => (
-          <div key={index} className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700/50">
-            <h3 className="text-lg font-semibold mb-3">{faq.question}</h3>
-            <p className="text-gray-400">{faq.answer}</p>
+          <div key={index} className="bg-white rounded-2xl p-8 border border-gray-200 hover:border-[#635bff] hover:shadow-lg transition-all">
+            <h3 className="text-lg font-bold mb-4 text-[#0a2540]">{faq.question}</h3>
+            <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
           </div>
         ))}
       </div>
 
       {/* Contact Section */}
-      <div className="text-center bg-gray-800/50 rounded-2xl p-12 border border-gray-700/50">
-        <h2 className="text-2xl font-bold mb-4">Still need help?</h2>
-        <p className="text-gray-400 mb-6">
+      <div className="text-center bg-gradient-to-br from-[#f6f9fc] to-white rounded-3xl p-16 border border-gray-200">
+        <h2 className="text-3xl font-bold mb-6 text-[#0a2540]">Still need help?</h2>
+        <p className="text-gray-600 text-lg mb-10">
           Can't find what you're looking for? Our support team is here to help.
         </p>
         <a
           href="mailto:support@keelfinance.com"
-          className="inline-block px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all"
+          className="inline-block px-10 py-5 bg-[#635bff] text-white rounded-full text-lg font-medium hover:bg-[#5851ea] transition-all shadow-lg"
         >
           Contact Support
         </a>

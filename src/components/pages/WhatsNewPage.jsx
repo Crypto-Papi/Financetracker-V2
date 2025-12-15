@@ -44,34 +44,34 @@ export function WhatsNewPage({ onBack, onNavigate, onGetStarted }) {
   return (
     <PageLayout onBack={onBack} onNavigate={onNavigate}>
       {/* Hero Section */}
-      <div className="text-center mb-16">
-        <div className="inline-block bg-yellow-500/20 text-yellow-400 text-sm font-semibold px-4 py-2 rounded-full mb-4">
+      <div className="text-center mb-20">
+        <div className="inline-block bg-[#635bff]/10 text-[#635bff] text-sm font-semibold px-4 py-2 rounded-full mb-6">
           CHANGELOG
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 text-[#0a2540]">
           What's New ✨
         </h1>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           See the latest features and improvements we've shipped.
         </p>
       </div>
 
       {/* Updates Timeline */}
-      <div className="space-y-8 mb-16">
+      <div className="space-y-6 mb-20">
         {updates.map((update, index) => (
-          <div key={index} className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700/50">
-            <div className="flex items-center gap-4 mb-4">
-              <span className="bg-purple-500/20 text-purple-400 text-sm font-mono px-3 py-1 rounded">
+          <div key={index} className="bg-white rounded-2xl p-10 border border-gray-200 hover:border-[#635bff] hover:shadow-lg transition-all">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="bg-[#635bff]/10 text-[#635bff] text-sm font-mono font-semibold px-4 py-2 rounded-full">
                 v{update.version}
               </span>
               <span className="text-gray-500 text-sm">{update.date}</span>
             </div>
-            <h3 className="text-xl font-semibold mb-4">{update.title}</h3>
-            <ul className="space-y-2">
+            <h3 className="text-2xl font-bold mb-6 text-[#0a2540]">{update.title}</h3>
+            <ul className="space-y-3">
               {update.features.map((feature, i) => (
-                <li key={i} className="flex items-start gap-3 text-gray-400">
-                  <svg className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                <li key={i} className="flex items-start gap-3 text-gray-600">
+                  <svg className="w-6 h-6 text-[#00d4ff] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                   </svg>
                   {feature}
                 </li>
@@ -82,11 +82,11 @@ export function WhatsNewPage({ onBack, onNavigate, onGetStarted }) {
       </div>
 
       {/* Coming Soon */}
-      <div className="bg-gray-800/30 rounded-2xl p-8 border border-dashed border-gray-600 mb-16">
-        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+      <div className="bg-gradient-to-br from-[#f6f9fc] to-white rounded-3xl p-10 border-2 border-dashed border-[#635bff]/30 mb-20">
+        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-[#0a2540]">
           <span>🔮</span> Coming Soon
         </h3>
-        <ul className="space-y-2 text-gray-400">
+        <ul className="space-y-3 text-gray-600 text-lg">
           <li>• Investment tracking and net worth</li>
           <li>• Mobile app for iOS and Android</li>
           <li>• Shared budgets for couples and families</li>
@@ -95,14 +95,14 @@ export function WhatsNewPage({ onBack, onNavigate, onGetStarted }) {
       </div>
 
       {/* CTA Section */}
-      <div className="text-center bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl p-12 border border-purple-500/30">
-        <h2 className="text-3xl font-bold mb-4">Try the latest features</h2>
-        <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+      <div className="text-center bg-gradient-to-br from-[#635bff] to-[#00d4ff] rounded-3xl p-16 shadow-2xl">
+        <h2 className="text-4xl font-bold mb-6 text-white">Try the latest features</h2>
+        <p className="text-white/90 text-lg mb-10 max-w-xl mx-auto">
           Start your free trial and experience everything Keel has to offer.
         </p>
         <button
           onClick={onGetStarted}
-          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all cursor-pointer"
+          className="px-10 py-5 bg-white text-[#635bff] rounded-full text-lg font-medium hover:bg-gray-50 transition-all shadow-xl"
         >
           Try Keel Free for 7 Days
         </button>
