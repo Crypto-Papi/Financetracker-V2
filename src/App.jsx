@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard'
 import { VerifyEmail } from './components/VerifyEmail'
 import { Paywall } from './components/Paywall'
 import { LandingPage } from './components/LandingPage'
+import { PrivacyPolicy } from './components/PrivacyPolicy'
 import { useSubscription } from './hooks/useSubscription'
 
 // Initialize Firebase
@@ -50,6 +51,23 @@ function App() {
   const [monthResetNotification, setMonthResetNotification] = useState(null)
   const [showAuthForm, setShowAuthForm] = useState(false) // Controls whether to show Auth or Landing page
   const [isSignUp, setIsSignUp] = useState(true) // Controls whether Auth shows sign up or sign in
+  const [currentPage, setCurrentPage] = useState('home') // 'home', 'privacy', 'terms'
+
+  // Handle URL-based routing for legal pages
+  useEffect(() => {
+    const handleRoute = () => {
+      const path = window.location.pathname
+      if (path === '/privacy') {
+        setCurrentPage('privacy')
+      } else {
+        setCurrentPage('home')
+      }
+    }
+
+    handleRoute()
+    window.addEventListener('popstate', handleRoute)
+    return () => window.removeEventListener('popstate', handleRoute)
+  }, [])
 
   // Check subscription status
   const {
@@ -270,6 +288,21 @@ function App() {
   // Combine all loading states to prevent flash
   const isFullyLoaded = !loading && (!isDevelopment ? !subscriptionLoading : true)
 
+  // Handle navigation helper
+  const navigateTo = (page) => {
+    if (page === 'home') {
+      window.history.pushState({}, '', '/')
+    } else {
+      window.history.pushState({}, '', `/${page}`)
+    }
+    setCurrentPage(page)
+  }
+
+  // Show Privacy Policy page (accessible without auth)
+  if (currentPage === 'privacy') {
+    return <PrivacyPolicy onBack={() => navigateTo('home')} />
+  }
+
   // Show unified loading screen while auth AND subscription are being checked
   if (!isFullyLoaded) {
     return (
@@ -304,6 +337,7 @@ function App() {
           setIsSignUp(false)
           setShowAuthForm(true)
         }}
+        onNavigate={navigateTo}
       />
     )
   }

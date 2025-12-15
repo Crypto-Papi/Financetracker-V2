@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
  * Landing page component similar to Monarch Money
  * Features: Hero with video background, features section, pricing, testimonials, CTA
  */
-export function LandingPage({ onGetStarted, onSignIn }) {
+export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
   const [isVideoLoaded, setIsVideoLoaded] = useState(false)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const videoRef = useRef(null)
@@ -235,9 +235,17 @@ export function LandingPage({ onGetStarted, onSignIn }) {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <img src="/keel-logo.png" alt="Keel" className="h-12 w-12" />
-            <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} Keel. All rights reserved.
-            </p>
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => onNavigate && onNavigate('privacy')}
+                className="text-gray-500 hover:text-gray-300 text-sm transition-colors cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+              <p className="text-gray-500 text-sm">
+                © {new Date().getFullYear()} Keel. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
