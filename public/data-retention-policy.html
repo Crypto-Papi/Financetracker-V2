@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Retention and Disposal Policy - Keel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+    h1 { color: #1a1a2e; margin-bottom: 10px; font-size: 28px; }
+    h2 { color: #1a1a2e; margin-top: 30px; margin-bottom: 15px; font-size: 18px; border-bottom: 2px solid #7c3aed; padding-bottom: 5px; }
+    h3 { color: #444; margin-top: 20px; margin-bottom: 10px; font-size: 16px; }
+    p { margin-bottom: 12px; }
+    ul { margin-left: 25px; margin-bottom: 15px; }
+    li { margin-bottom: 8px; }
+    .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
+    .logo { font-size: 36px; font-weight: bold; color: #7c3aed; }
+    .date { color: #666; font-size: 14px; margin-top: 10px; }
+    .section { margin-bottom: 25px; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background: #f5f5f5; font-weight: 600; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Keel</div>
+    <h1>Data Retention and Disposal Policy</h1>
+    <div class="date">Effective Date: December 15, 2024<br>Last Reviewed: December 15, 2024</div>
+  </div>
+
+  <div class="section">
+    <h2>1. Purpose</h2>
+    <p>This policy establishes guidelines for the retention, storage, and secure disposal of consumer data collected through the Keel personal finance application. This policy ensures compliance with applicable data privacy laws including CCPA, and requirements of third-party data providers including Plaid.</p>
+  </div>
+
+  <div class="section">
+    <h2>2. Scope</h2>
+    <p>This policy applies to all consumer data collected, processed, and stored by Keel, including:</p>
+    <ul>
+      <li>Account information (email, name, authentication data)</li>
+      <li>Financial data obtained through Plaid (transactions, account balances, account identifiers)</li>
+      <li>User-generated content (manual transactions, budgets, notes)</li>
+      <li>Usage and analytics data</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>3. Data Retention Schedule</h2>
+    <table>
+      <tr>
+        <th>Data Type</th>
+        <th>Retention Period</th>
+        <th>Justification</th>
+      </tr>
+      <tr>
+        <td>Account credentials</td>
+        <td>Duration of account + 30 days</td>
+        <td>Service provision</td>
+      </tr>
+      <tr>
+        <td>Plaid access tokens</td>
+        <td>Until user disconnects or account deletion</td>
+        <td>Bank connectivity</td>
+      </tr>
+      <tr>
+        <td>Transaction history</td>
+        <td>Duration of account + 30 days</td>
+        <td>Service provision</td>
+      </tr>
+      <tr>
+        <td>Account balances</td>
+        <td>Duration of account + 30 days</td>
+        <td>Service provision</td>
+      </tr>
+      <tr>
+        <td>User preferences</td>
+        <td>Duration of account + 30 days</td>
+        <td>Service provision</td>
+      </tr>
+      <tr>
+        <td>Payment/subscription data</td>
+        <td>7 years after last transaction</td>
+        <td>Legal/tax requirements</td>
+      </tr>
+      <tr>
+        <td>Support communications</td>
+        <td>3 years</td>
+        <td>Customer service</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>4. Data Disposal Procedures</h2>
+    <h3>4.1 Account Deletion</h3>
+    <p>When a user requests account deletion or deletes their account:</p>
+    <ul>
+      <li>All personal data is marked for deletion within 24 hours</li>
+      <li>Plaid access tokens are revoked immediately</li>
+      <li>Data is permanently deleted from primary systems within 30 days</li>
+      <li>Backup systems are purged within 90 days</li>
+    </ul>
+
+    <h3>4.2 Plaid Data Disconnection</h3>
+    <p>When a user disconnects a linked financial institution:</p>
+    <ul>
+      <li>Plaid access token is revoked immediately</li>
+      <li>Associated transaction data is retained per user preference or deleted upon request</li>
+    </ul>
+
+    <h3>4.3 Secure Disposal Methods</h3>
+    <ul>
+      <li><strong>Database records:</strong> Permanent deletion via Firebase/Firestore deletion APIs</li>
+      <li><strong>Access tokens:</strong> Immediate revocation and deletion</li>
+      <li><strong>Backups:</strong> Automatic expiration per backup retention schedule</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>5. User Rights</h2>
+    <p>Users may exercise the following rights regarding their data:</p>
+    <ul>
+      <li><strong>Access:</strong> Request a copy of their personal data</li>
+      <li><strong>Correction:</strong> Request correction of inaccurate data</li>
+      <li><strong>Deletion:</strong> Request deletion of their data</li>
+      <li><strong>Portability:</strong> Request data in a portable format</li>
+      <li><strong>Disconnection:</strong> Revoke access to linked financial accounts at any time</li>
+    </ul>
+    <p>Requests can be submitted to: <strong>privacy@keelfinances.com</strong></p>
+  </div>
+
+  <div class="section">
+    <h2>6. Security Measures</h2>
+    <ul>
+      <li>All data encrypted at rest using AES-256 encryption</li>
+      <li>All data encrypted in transit using TLS 1.2+</li>
+      <li>Data stored on Google Cloud Platform (Firebase) with SOC 2 Type II certification</li>
+      <li>Access controls and authentication required for all data access</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>7. Policy Review</h2>
+    <p>This policy is reviewed:</p>
+    <ul>
+      <li>Annually, at minimum</li>
+      <li>When significant changes occur to data processing activities</li>
+      <li>When required by regulatory changes</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>8. Contact Information</h2>
+    <p><strong>Keel</strong><br>
+    Email: privacy@keelfinances.com<br>
+    Website: https://keelfinances.com</p>
+  </div>
+
+  <div class="footer">
+    <p>© 2024 Keel. All rights reserved.</p>
+    <p>Document Version: 1.0</p>
+  </div>
+</body>
+</html>
+
