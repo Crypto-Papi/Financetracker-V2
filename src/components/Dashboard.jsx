@@ -148,6 +148,7 @@ function Dashboard({
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [notification, setNotification] = useState(null)
   const [activeSection, setActiveSection] = useState('dashboard')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cashflowYear, setCashflowYear] = useState(new Date().getFullYear())
 
   // Onboarding tour hook - pass userId so each user gets their own onboarding
@@ -2837,10 +2838,24 @@ function Dashboard({
 
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex">
+    <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex flex-col md:flex-row">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200"
+      >
+        <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {mobileMenuOpen ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          )}
+        </svg>
+      </button>
+
       {/* Sidebar Navigation */}
-      <div id="sidebar-nav" className="w-64 bg-white border-r border-gray-200 p-6 fixed h-screen overflow-y-auto">
-        <img src="/keel-logo.png" alt="Keel" className="w-28 h-auto mb-8" />
+      <div id="sidebar-nav" className={`w-64 bg-white border-r border-gray-200 p-6 fixed md:static h-screen overflow-y-auto z-40 transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <img src="/keel-logo.png" alt="Keel" className="w-28 h-auto mb-8 mt-12 md:mt-0" />
         <nav className="space-y-2">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -2856,8 +2871,11 @@ function Dashboard({
             <button
               id={`nav-${section.id}`}
               key={section.id}
-              onClick={() => setActiveSection(section.id)}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 font-medium ${activeSection === section.id ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+              onClick={() => {
+                setActiveSection(section.id)
+                setMobileMenuOpen(false)
+              }}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 font-medium ${activeSection === section.id ? 'bg-gray-200 text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
             >
               <span className="text-xl">{section.icon}</span>
               {section.label}
@@ -2866,8 +2884,16 @@ function Dashboard({
         </nav>
       </div>
 
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <div className="flex-1 ml-64 p-4 md:p-8 flex justify-center">
+      <div className="flex-1 md:ml-0 p-4 md:p-8 flex justify-center pt-16 md:pt-4">
         {notification && (
           <div className={`fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg text-white font-medium z-50 animate-fade-in ${notification.type === 'success' ? 'bg-green-500' : ''} ${notification.type === 'error' ? 'bg-red-500' : ''} ${notification.type === 'warning' ? 'bg-yellow-500' : ''}`}>
             {notification.message}
@@ -2878,7 +2904,7 @@ function Dashboard({
           <div className="mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 text-gray-900">
+                <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-2 text-gray-900">
                   {activeSection === 'dashboard' && 'Finance Dashboard'}
                   {activeSection === 'accounts' && 'Accounts'}
                   {activeSection === 'transactions' && 'Transactions'}
@@ -2889,7 +2915,7 @@ function Dashboard({
                   {activeSection === 'calendar' && 'Calendar'}
                   {activeSection === 'goals' && 'Debt Payoff'}
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-sm md:text-base text-gray-600">
                   {activeSection === 'dashboard' && 'Track your income and expenses with ease'}
                   {activeSection === 'cashflow' && 'Visualize your money flow from income to expenses'}
                   {activeSection === 'savings' && 'Create and track your savings goals'}
@@ -2899,34 +2925,35 @@ function Dashboard({
               </div>
 
               {/* Account, Help & Sign Out Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 md:gap-3">
                 <button
                   id="help-tour-btn"
                   onClick={startTour}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
+                  className="px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer text-sm md:text-base"
                   title="Take a tour of the app"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Help
+                  <span className="hidden sm:inline">Help</span>
                 </button>
                 <button
                   onClick={handleOpenAccountModal}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
+                  className="px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer text-sm md:text-base"
                   title="My Account"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  My Account
+                  <span className="hidden sm:inline">My Account</span>
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
+                  className="px-3 md:px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer text-sm md:text-base"
                   title="Sign out"
                 >
-                  Sign Out
+                  <span className="hidden sm:inline">Sign Out</span>
+                  <span className="sm:hidden">Logout</span>
                 </button>
               </div>
             </div>
