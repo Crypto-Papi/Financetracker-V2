@@ -7,6 +7,7 @@ import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ReferenceLine
 import DebtPaidOffModal from './DebtPaidOffModal.jsx'
 import { useOnboarding } from './Onboarding.jsx'
 import { createPortalSession } from '../stripe'
+import PlaidLinkButton from './PlaidLink.jsx'
 
 // Fast bill checkbox component with LOCAL state for instant UI response
 const BillCheckboxItem = React.memo(({ bill, initialPaid, onToggle, showDate, currentMonthLabel, dueDay }) => {
@@ -186,6 +187,10 @@ function Dashboard({
   const [monthlySnapshots, setMonthlySnapshots] = useState([]) // Historical monthly liability snapshots
   const [appStartDate, setAppStartDate] = useState(null) // When user started using the app
 
+  // Plaid connected accounts state
+  const [connectedPlaidAccounts, setConnectedPlaidAccounts] = useState([])
+  const [plaidSyncing, setPlaidSyncing] = useState(false)
+
   // My Account modal state
   const [showAccountModal, setShowAccountModal] = useState(false)
   const [accountName, setAccountName] = useState('')
@@ -204,6 +209,64 @@ function Dashboard({
       setPortalLoading(false)
     }
   }, [db, userId])
+
+  // Fetch connected Plaid accounts
+  const fetchPlaidAccounts = useCallback(async () => {
+    if (!userId) return
+    const API_BASE = import.meta.env.VITE_API_URL || ''
+    try {
+      const response = await fetch(`${API_BASE}/api/get-plaid-accounts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setConnectedPlaidAccounts(data.accounts || [])
+      }
+    } catch (error) {
+      console.error('Error fetching Plaid accounts:', error)
+    }
+  }, [userId])
+
+  // Handle successful Plaid connection
+  const handlePlaidSuccess = useCallback(async (data) => {
+    setNotification({ type: 'success', message: `Successfully connected ${data.accounts?.length || 1} account(s)! Syncing transactions...` })
+    setPlaidSyncing(true)
+    await fetchPlaidAccounts()
+    setPlaidSyncing(false)
+    setNotification({ type: 'success', message: 'Transactions synced successfully!' })
+  }, [fetchPlaidAccounts])
+
+  // Sync transactions for a specific Plaid item
+  const syncPlaidTransactions = useCallback(async (itemId) => {
+    if (!userId || !itemId) return
+    const API_BASE = import.meta.env.VITE_API_URL || ''
+    setPlaidSyncing(true)
+    try {
+      const response = await fetch(`${API_BASE}/api/sync-transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, itemId }),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setNotification({ type: 'success', message: `Synced ${data.added} new transactions!` })
+      } else {
+        throw new Error('Failed to sync')
+      }
+    } catch (error) {
+      console.error('Error syncing transactions:', error)
+      setNotification({ type: 'error', message: 'Failed to sync transactions' })
+    } finally {
+      setPlaidSyncing(false)
+    }
+  }, [userId])
+
+  // Fetch Plaid accounts on mount
+  useEffect(() => {
+    fetchPlaidAccounts()
+  }, [fetchPlaidAccounts])
 
   // Complete Profile prompt (for users without a name)
   const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false)
@@ -5920,6 +5983,91 @@ function Dashboard({
                     </p>
                   </div>
                 </div>
+                </div>
+              </div>
+
+              {/* Connect Bank Account Section */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+                <div className="bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                      <span className="text-lg">🏦</span>
+                    </div>
+                    <h3 className="text-base font-semibold text-white">Connected Accounts</h3>
+                  </div>
+                  <PlaidLinkButton
+                    userId={userId}
+                    onSuccess={handlePlaidSuccess}
+                    className="px-4 py-2 bg-white text-teal-600 rounded-lg font-medium hover:bg-teal-50 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Connect Account
+                  </PlaidLinkButton>
+                </div>
+                <div className="p-4">
+                  {connectedPlaidAccounts.length === 0 ? (
+                    <div className="text-center py-6 text-gray-500">
+                      <p className="mb-2">No bank accounts connected yet</p>
+                      <p className="text-sm">Connect your bank to automatically import transactions</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {connectedPlaidAccounts.map(item => (
+                        <div key={item.itemId} className="border border-gray-200 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                                <span className="text-lg">🏦</span>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">{item.institutionName}</p>
+                                <p className="text-xs text-gray-500">{item.accounts?.length || 0} account(s)</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => syncPlaidTransactions(item.itemId)}
+                              disabled={plaidSyncing}
+                              className="px-3 py-1.5 text-sm bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 transition-colors disabled:opacity-50 flex items-center gap-1"
+                            >
+                              {plaidSyncing ? (
+                                <>
+                                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Syncing...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  Sync
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {item.accounts?.map(acc => (
+                              <div key={acc.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{acc.name}</p>
+                                  <p className="text-xs text-gray-500">{acc.type} •••• {acc.mask}</p>
+                                </div>
+                                {acc.currentBalance !== undefined && (
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    ${acc.currentBalance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
