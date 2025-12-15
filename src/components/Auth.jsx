@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 const googleProvider = new GoogleAuthProvider()
 
-export function Auth({ auth, onAuthSuccess, initialIsSignUp = false }) {
+export function Auth({ auth, onAuthSuccess, onBackToLanding, initialIsSignUp = false }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -453,6 +453,18 @@ export function Auth({ auth, onAuthSuccess, initialIsSignUp = false }) {
                 </svg>
                 <span>Debt payoff planner</span>
               </div>
+            </div>
+          )}
+
+          {/* Back to Home Link */}
+          {onBackToLanding && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={onBackToLanding}
+                className="text-gray-400 hover:text-white text-sm transition-colors cursor-pointer"
+              >
+                ← Back to Home
+              </button>
             </div>
           )}
         </div>

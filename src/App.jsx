@@ -53,14 +53,24 @@ function App() {
   const [isSignUp, setIsSignUp] = useState(true) // Controls whether Auth shows sign up or sign in
   const [currentPage, setCurrentPage] = useState('home') // 'home', 'privacy', 'terms'
 
-  // Handle URL-based routing for legal pages
+  // Handle URL-based routing for legal pages and auth
   useEffect(() => {
     const handleRoute = () => {
       const path = window.location.pathname
       if (path === '/privacy') {
         setCurrentPage('privacy')
+        setShowAuthForm(false)
+      } else if (path === '/signup') {
+        setCurrentPage('home')
+        setIsSignUp(true)
+        setShowAuthForm(true)
+      } else if (path === '/signin') {
+        setCurrentPage('home')
+        setIsSignUp(false)
+        setShowAuthForm(true)
       } else {
         setCurrentPage('home')
+        setShowAuthForm(false)
       }
     }
 
@@ -321,7 +331,14 @@ function App() {
       return (
         <Auth
           auth={auth}
-          onAuthSuccess={() => setShowAuthForm(false)}
+          onAuthSuccess={() => {
+            setShowAuthForm(false)
+            window.history.pushState({}, '', '/')
+          }}
+          onBackToLanding={() => {
+            setShowAuthForm(false)
+            window.history.pushState({}, '', '/')
+          }}
           initialIsSignUp={isSignUp}
         />
       )
@@ -332,10 +349,12 @@ function App() {
         onGetStarted={() => {
           setIsSignUp(true)
           setShowAuthForm(true)
+          window.history.pushState({}, '', '/signup')
         }}
         onSignIn={() => {
           setIsSignUp(false)
           setShowAuthForm(true)
+          window.history.pushState({}, '', '/signin')
         }}
         onNavigate={navigateTo}
       />

@@ -38,6 +38,14 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
     }
   }, [currentVideoIndex])
 
+  // Smooth scroll to section
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   const features = [
     {
       icon: '📊',
@@ -134,7 +142,7 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
       </section>
 
       {/* What is Keel Section */}
-      <section className="py-20 px-6 bg-gray-900">
+      <section id="about" className="py-20 px-6 bg-gray-900">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-purple-400 font-semibold mb-2">WHAT IS KEEL?</p>
@@ -148,7 +156,7 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-6 bg-gray-800/50">
+      <section id="features" className="py-20 px-6 bg-gray-800/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Everything you need, all in one app</h2>
@@ -171,7 +179,7 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-20 px-6 bg-gray-900">
+      <section id="pricing" className="py-20 px-6 bg-gray-900">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-purple-400 font-semibold mb-2">PRICING</p>
@@ -245,17 +253,17 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Features</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Tracking
                   </button>
                 </li>
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Budgeting
                   </button>
                 </li>
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Planning
                   </button>
                 </li>
@@ -267,17 +275,17 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Compare</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     YNAB
                   </button>
                 </li>
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Simplifi
                   </button>
                 </li>
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Mint
                   </button>
                 </li>
@@ -289,12 +297,12 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Resources</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors flex items-center gap-1">
+                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors flex items-center gap-1">
                     What's New <span className="text-purple-500">✨</span>
                   </button>
                 </li>
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Bank Connections
                   </button>
                 </li>
@@ -311,17 +319,17 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Company</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('about')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     About
                   </button>
                 </li>
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('about')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Blog
                   </button>
                 </li>
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => scrollToSection('about')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Careers
                   </button>
                 </li>
@@ -333,9 +341,9 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Support</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={onGetStarted} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <a href="mailto:support@keelfinance.com" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Help Center
-                  </button>
+                  </a>
                 </li>
                 <li>
                   <a href="mailto:support@keelfinance.com" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
