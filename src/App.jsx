@@ -10,6 +10,23 @@ import { LandingPage } from './components/LandingPage'
 import { PrivacyPolicy } from './components/PrivacyPolicy'
 import { useSubscription } from './hooks/useSubscription'
 
+// Import footer pages
+import {
+  TrackingPage,
+  BudgetingPage,
+  PlanningPage,
+  CompareYnabPage,
+  CompareSimplifiPage,
+  CompareMintPage,
+  AboutPage,
+  BlogPage,
+  CareersPage,
+  WhatsNewPage,
+  BankConnectionsPage,
+  TermsPage,
+  HelpCenterPage
+} from './components/pages'
+
 // Initialize Firebase
 let app, auth, db
 
@@ -53,21 +70,42 @@ function App() {
   const [isSignUp, setIsSignUp] = useState(true) // Controls whether Auth shows sign up or sign in
   const [currentPage, setCurrentPage] = useState('home') // 'home', 'privacy', 'terms'
 
-  // Handle URL-based routing for legal pages and auth
+  // Handle URL-based routing for all pages
   useEffect(() => {
     const handleRoute = () => {
       const path = window.location.pathname
-      if (path === '/privacy') {
-        setCurrentPage('privacy')
-        setShowAuthForm(false)
-      } else if (path === '/signup') {
+      // Map URL paths to page names
+      const routeMap = {
+        '/privacy': 'privacy',
+        '/terms': 'terms',
+        '/about': 'about',
+        '/blog': 'blog',
+        '/careers': 'careers',
+        '/help': 'help',
+        '/whats-new': 'whats-new',
+        '/bank-connections': 'bank-connections',
+        '/features/tracking': 'tracking',
+        '/features/budgeting': 'budgeting',
+        '/features/planning': 'planning',
+        '/compare/ynab': 'compare-ynab',
+        '/compare/simplifi': 'compare-simplifi',
+        '/compare/mint': 'compare-mint',
+        '/signup': 'signup',
+        '/signin': 'signin',
+      }
+
+      const page = routeMap[path]
+      if (page === 'signup') {
         setCurrentPage('home')
         setIsSignUp(true)
         setShowAuthForm(true)
-      } else if (path === '/signin') {
+      } else if (page === 'signin') {
         setCurrentPage('home')
         setIsSignUp(false)
         setShowAuthForm(true)
+      } else if (page) {
+        setCurrentPage(page)
+        setShowAuthForm(false)
       } else {
         setCurrentPage('home')
         setShowAuthForm(false)
@@ -300,17 +338,78 @@ function App() {
 
   // Handle navigation helper
   const navigateTo = (page) => {
-    if (page === 'home') {
-      window.history.pushState({}, '', '/')
-    } else {
-      window.history.pushState({}, '', `/${page}`)
+    // Map page names to URL paths
+    const urlMap = {
+      'home': '/',
+      'tracking': '/features/tracking',
+      'budgeting': '/features/budgeting',
+      'planning': '/features/planning',
+      'compare-ynab': '/compare/ynab',
+      'compare-simplifi': '/compare/simplifi',
+      'compare-mint': '/compare/mint',
     }
+    const url = urlMap[page] || `/${page}`
+    window.history.pushState({}, '', url)
     setCurrentPage(page)
+    window.scrollTo(0, 0)
   }
 
-  // Show Privacy Policy page (accessible without auth)
+  // Handle "Get Started" from any page
+  const handleGetStarted = () => {
+    setIsSignUp(true)
+    setShowAuthForm(true)
+    window.history.pushState({}, '', '/signup')
+  }
+
+  // Common page props
+  const pageProps = {
+    onBack: () => navigateTo('home'),
+    onNavigate: navigateTo,
+    onGetStarted: handleGetStarted,
+  }
+
+  // Show static pages (accessible without auth)
   if (currentPage === 'privacy') {
     return <PrivacyPolicy onBack={() => navigateTo('home')} />
+  }
+  if (currentPage === 'terms') {
+    return <TermsPage {...pageProps} />
+  }
+  if (currentPage === 'about') {
+    return <AboutPage {...pageProps} />
+  }
+  if (currentPage === 'blog') {
+    return <BlogPage {...pageProps} />
+  }
+  if (currentPage === 'careers') {
+    return <CareersPage {...pageProps} />
+  }
+  if (currentPage === 'help') {
+    return <HelpCenterPage {...pageProps} />
+  }
+  if (currentPage === 'whats-new') {
+    return <WhatsNewPage {...pageProps} />
+  }
+  if (currentPage === 'bank-connections') {
+    return <BankConnectionsPage {...pageProps} />
+  }
+  if (currentPage === 'tracking') {
+    return <TrackingPage {...pageProps} />
+  }
+  if (currentPage === 'budgeting') {
+    return <BudgetingPage {...pageProps} />
+  }
+  if (currentPage === 'planning') {
+    return <PlanningPage {...pageProps} />
+  }
+  if (currentPage === 'compare-ynab') {
+    return <CompareYnabPage {...pageProps} />
+  }
+  if (currentPage === 'compare-simplifi') {
+    return <CompareSimplifiPage {...pageProps} />
+  }
+  if (currentPage === 'compare-mint') {
+    return <CompareMintPage {...pageProps} />
   }
 
   // Show unified loading screen while auth AND subscription are being checked

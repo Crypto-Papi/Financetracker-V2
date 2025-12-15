@@ -253,17 +253,17 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Features</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('tracking')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Tracking
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('budgeting')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Budgeting
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('planning')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Planning
                   </button>
                 </li>
@@ -275,17 +275,17 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Compare</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('compare-ynab')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     YNAB
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('compare-simplifi')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Simplifi
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('compare-mint')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Mint
                   </button>
                 </li>
@@ -297,13 +297,18 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Resources</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors flex items-center gap-1">
+                  <button onClick={() => onNavigate && onNavigate('whats-new')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors flex items-center gap-1">
                     What's New <span className="text-purple-500">✨</span>
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('bank-connections')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Bank Connections
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => onNavigate && onNavigate('terms')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                    Terms of Use
                   </button>
                 </li>
                 <li>
@@ -319,17 +324,17 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Company</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={() => scrollToSection('about')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('about')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     About
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('about')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('blog')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Blog
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('about')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('careers')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Careers
                   </button>
                 </li>
@@ -341,9 +346,9 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
               <h4 className="font-semibold text-gray-900 mb-4">Support</h4>
               <ul className="space-y-3">
                 <li>
-                  <a href="mailto:support@keelfinance.com" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <button onClick={() => onNavigate && onNavigate('help')} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Help Center
-                  </a>
+                  </button>
                 </li>
                 <li>
                   <a href="mailto:support@keelfinance.com" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
