@@ -6,7 +6,7 @@ export { PlanningPage } from './PlanningPage'
 // Comparison pages
 export { CompareYnabPage } from './CompareYnabPage'
 export { CompareSimplifiPage } from './CompareSimplifiPage'
-export { CompareMintPage } from './CompareMintPage'
+export { CompareMonarchPage } from './CompareMonarchPage'
 
 // Company pages
 export { AboutPage } from './AboutPage'

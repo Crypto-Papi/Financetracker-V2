@@ -17,7 +17,7 @@ import {
   PlanningPage,
   CompareYnabPage,
   CompareSimplifiPage,
-  CompareMintPage,
+  CompareMonarchPage,
   AboutPage,
   BlogPage,
   CareersPage,
@@ -89,7 +89,7 @@ function App() {
         '/features/planning': 'planning',
         '/compare/ynab': 'compare-ynab',
         '/compare/simplifi': 'compare-simplifi',
-        '/compare/mint': 'compare-mint',
+        '/compare/monarch': 'compare-monarch',
         '/signup': 'signup',
         '/signin': 'signin',
       }
@@ -346,7 +346,7 @@ function App() {
       'planning': '/features/planning',
       'compare-ynab': '/compare/ynab',
       'compare-simplifi': '/compare/simplifi',
-      'compare-mint': '/compare/mint',
+      'compare-monarch': '/compare/monarch',
     }
     const url = urlMap[page] || `/${page}`
     window.history.pushState({}, '', url)
@@ -408,8 +408,8 @@ function App() {
   if (currentPage === 'compare-simplifi') {
     return <CompareSimplifiPage {...pageProps} />
   }
-  if (currentPage === 'compare-mint') {
-    return <CompareMintPage {...pageProps} />
+  if (currentPage === 'compare-monarch') {
+    return <CompareMonarchPage {...pageProps} />
   }
 
   // Show unified loading screen while auth AND subscription are being checked
