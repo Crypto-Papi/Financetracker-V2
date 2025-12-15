@@ -1,6 +1,141 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
+ * Modular Diagram Component - Stripe-style flowing pipes animation
+ */
+function ModularDiagram() {
+  const [activeModule, setActiveModule] = useState('payments')
+
+  const modules = [
+    { id: 'connect', label: 'Connect', icon: '🔗', position: { top: '15%', left: '25%' } },
+    { id: 'billing', label: 'Billing', icon: '💳', position: { top: '15%', left: '55%' } },
+    { id: 'reporting', label: 'Reporting', icon: '📊', position: { top: '15%', right: '10%' } },
+    { id: 'payments', label: 'Payments', icon: '▶️', position: { top: '40%', left: '50%', transform: 'translateX(-50%)' }, highlight: true },
+    { id: 'checkout', label: 'Checkout', icon: '🛒', position: { top: '30%', left: '10%' } },
+    { id: 'terminal', label: 'Terminal', icon: '💻', position: { top: '60%', left: '50%', transform: 'translateX(-50%)' } },
+    { id: 'invoicing', label: 'Invoicing', icon: '📄', position: { bottom: '15%', left: '15%' } },
+    { id: 'revenue', label: 'Revenue', icon: '📈', position: { bottom: '15%', right: '35%' } },
+    { id: 'tax', label: 'Tax', icon: '🧾', position: { top: '30%', right: '15%' } },
+    { id: 'identity', label: 'Identity', icon: '🔐', position: { bottom: '15%', right: '10%' } },
+    { id: 'radar', label: 'Radar', icon: '🎯', position: { bottom: '30%', left: '35%' } },
+  ]
+
+  return (
+    <div className="relative w-full h-full">
+      {/* SVG for flowing pipes/connections */}
+      <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
+        <defs>
+          {/* Gradient for pipes */}
+          <linearGradient id="pipeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style={{ stopColor: '#635bff', stopOpacity: 0.3 }} />
+            <stop offset="50%" style={{ stopColor: '#00d4ff', stopOpacity: 0.6 }} />
+            <stop offset="100%" style={{ stopColor: '#635bff', stopOpacity: 0.3 }} />
+          </linearGradient>
+
+          {/* Animated gradient for flow effect */}
+          <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style={{ stopColor: '#635bff', stopOpacity: 0 }}>
+              <animate attributeName="offset" values="0;1" dur="2s" repeatCount="indefinite" />
+            </stop>
+            <stop offset="50%" style={{ stopColor: '#00d4ff', stopOpacity: 1 }}>
+              <animate attributeName="offset" values="0.5;1.5" dur="2s" repeatCount="indefinite" />
+            </stop>
+            <stop offset="100%" style={{ stopColor: '#635bff', stopOpacity: 0 }}>
+              <animate attributeName="offset" values="1;2" dur="2s" repeatCount="indefinite" />
+            </stop>
+          </linearGradient>
+        </defs>
+
+        {/* Connections from Payments (center) to other modules */}
+        {/* Top connections */}
+        <path d="M 50% 40% L 50% 30% L 25% 20%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3s" repeatCount="indefinite" />
+        </path>
+        <path d="M 50% 40% L 50% 25%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.5s" repeatCount="indefinite" />
+        </path>
+        <path d="M 50% 40% L 50% 30% L 75% 20%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.2s" repeatCount="indefinite" />
+        </path>
+
+        {/* Side connections */}
+        <path d="M 50% 40% L 30% 40% L 15% 35%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.8s" repeatCount="indefinite" />
+        </path>
+        <path d="M 50% 40% L 70% 40% L 85% 35%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.5s" repeatCount="indefinite" />
+        </path>
+
+        {/* Bottom connections */}
+        <path d="M 50% 40% L 50% 60%" stroke="url(#pipeGradient)" strokeWidth="3" fill="none" opacity="0.6">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2s" repeatCount="indefinite" />
+        </path>
+        <path d="M 50% 60% L 30% 70% L 20% 80%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.3s" repeatCount="indefinite" />
+        </path>
+        <path d="M 50% 60% L 40% 75%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.7s" repeatCount="indefinite" />
+        </path>
+        <path d="M 50% 60% L 70% 75%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.1s" repeatCount="indefinite" />
+        </path>
+        <path d="M 50% 60% L 80% 80%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
+          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.9s" repeatCount="indefinite" />
+        </path>
+      </svg>
+
+      {/* Module boxes */}
+      {modules.map((module) => (
+        <div
+          key={module.id}
+          className={`absolute cursor-pointer transition-all duration-300 ${
+            module.highlight ? 'z-20' : 'z-10'
+          }`}
+          style={module.position}
+          onMouseEnter={() => setActiveModule(module.id)}
+        >
+          <div
+            className={`
+              relative group
+              ${module.highlight
+                ? 'bg-gradient-to-br from-[#635bff] to-[#7c3aed] text-white shadow-xl scale-110'
+                : 'bg-white border border-gray-200 text-gray-700 hover:border-[#635bff] hover:shadow-lg'
+              }
+              rounded-xl px-4 py-3 flex items-center gap-2 transition-all duration-300
+              ${activeModule === module.id ? 'scale-110 shadow-2xl' : ''}
+            `}
+          >
+            <span className="text-lg">{module.icon}</span>
+            <span className="font-semibold text-sm whitespace-nowrap">{module.label}</span>
+
+            {/* Pulse effect for highlighted module */}
+            {module.highlight && (
+              <div className="absolute inset-0 rounded-xl bg-[#635bff] opacity-0 group-hover:opacity-20 animate-pulse"></div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Flowing particles on pipes */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-[#00d4ff] rounded-full opacity-60 animate-flow"
+            style={{
+              top: `${40 + Math.sin(i) * 20}%`,
+              left: `${50 + Math.cos(i) * 30}%`,
+              animationDelay: `${i * 0.3}s`,
+              animationDuration: `${2 + i * 0.2}s`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
  * Stripe-inspired Landing Page
  * Features: Modern design, flow animations, Stripe color scheme
  */
@@ -196,40 +331,27 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
         <div className="absolute top-20 right-1/4 w-96 h-96 bg-[#00d4ff]/10 rounded-full blur-3xl -z-10" style={{ transform: `translateY(${scrollY * 0.3}px)` }}></div>
       </section>
 
-      {/* Flow Visualization Section - Stripe Style */}
-      <section className="relative py-32 px-6 bg-[#0a2540] overflow-hidden">
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full opacity-30"
-        />
+      {/* Modular Solutions Section - Stripe Style with Flowing Pipes */}
+      <section className="relative py-32 px-6 bg-[#f6f9fc] overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left Side - Text Content */}
+            <div>
+              <p className="text-[#635bff] font-semibold text-sm uppercase tracking-wide mb-4">
+                Modular solutions
+              </p>
+              <h2 className="text-4xl md:text-5xl font-bold text-[#0a2540] mb-6">
+                A fully integrated suite of financial and payments products
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                Reduce costs, grow revenue, and run your business more efficiently on a fully integrated, AI-powered platform. Use Keel to handle all of your payments-related needs, manage revenue operations, and launch (or invent) new business models.
+              </p>
+            </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              Modular financial solutions
-            </h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Every feature works together seamlessly to give you complete control over your money
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { title: 'Track', desc: 'Monitor every dollar automatically', color: 'from-[#635bff] to-[#00d4ff]' },
-              { title: 'Budget', desc: 'Smart budgets that adapt to you', color: 'from-[#00d4ff] to-[#7c3aed]' },
-              { title: 'Grow', desc: 'Reach your financial goals faster', color: 'from-[#7c3aed] to-[#635bff]' }
-            ].map((item, i) => (
-              <div key={i} className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-xl" style={{ background: `linear-gradient(to bottom right, ${item.color})` }}></div>
-                <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all duration-300">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} mb-6 flex items-center justify-center text-2xl font-bold text-white`}>
-                    {i + 1}
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-3">{item.title}</h3>
-                  <p className="text-gray-400">{item.desc}</p>
-                </div>
-              </div>
-            ))}
+            {/* Right Side - Animated Modular Diagram */}
+            <div className="relative h-[600px] flex items-center justify-center">
+              <ModularDiagram />
+            </div>
           </div>
         </div>
       </section>

@@ -24,6 +24,32 @@ html, body, #root {
   animation: fadeIn 0.3s ease-in-out;
 }
 
+/* Flowing particles animation for modular diagram */
+@keyframes flow {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(var(--flow-x, 20px), var(--flow-y, 20px)) scale(1.5);
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(var(--flow-x-end, 40px), var(--flow-y-end, 40px)) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-flow {
+  animation: flow 3s ease-in-out infinite;
+}
+
 /* Pointer cursor for all clickable elements */
 button,
 a,
