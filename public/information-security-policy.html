@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Information Security Policy - Keel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+    h1 { color: #1a1a2e; margin-bottom: 10px; font-size: 28px; }
+    h2 { color: #1a1a2e; margin-top: 30px; margin-bottom: 15px; font-size: 18px; border-bottom: 2px solid #7c3aed; padding-bottom: 5px; }
+    h3 { color: #444; margin-top: 20px; margin-bottom: 10px; font-size: 16px; }
+    p { margin-bottom: 12px; }
+    ul { margin-left: 25px; margin-bottom: 15px; }
+    li { margin-bottom: 8px; }
+    .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
+    .logo { font-size: 36px; font-weight: bold; color: #7c3aed; }
+    .date { color: #666; font-size: 14px; margin-top: 10px; }
+    .section { margin-bottom: 25px; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px; }
+    .signature-block { margin-top: 40px; padding: 20px; border: 1px solid #ddd; background: #f9f9f9; }
+    .signature-line { border-bottom: 1px solid #333; width: 250px; margin: 30px 0 5px 0; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Keel</div>
+    <h1>Information Security Policy</h1>
+    <div class="date">Effective Date: December 15, 2024<br>Version: 1.0</div>
+  </div>
+
+  <div class="section">
+    <h2>1. Purpose and Objectives</h2>
+    <p>This Information Security Policy (ISP) establishes the framework for protecting the confidentiality, integrity, and availability of information assets at Keel. Our objectives are to:</p>
+    <ul>
+      <li>Protect consumer financial data from unauthorized access, disclosure, or misuse</li>
+      <li>Ensure compliance with applicable laws, regulations, and contractual obligations</li>
+      <li>Maintain the trust of our users by implementing industry-standard security controls</li>
+      <li>Establish clear accountability for information security responsibilities</li>
+      <li>Enable secure business operations while managing information security risks</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>2. Scope</h2>
+    <p>This policy applies to:</p>
+    <ul>
+      <li>All information systems used to process, store, or transmit consumer data</li>
+      <li>All third-party services integrated with Keel (Plaid, Stripe, Firebase, Vercel)</li>
+      <li>All personnel with access to company systems (currently sole proprietor)</li>
+      <li>All devices used to access production systems</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>3. Roles and Accountability</h2>
+    <h3>3.1 Information Security Owner</h3>
+    <p><strong>Antonio Monroy, Founder</strong> - Responsible for:</p>
+    <ul>
+      <li>Overall information security strategy and policy approval</li>
+      <li>Ensuring adequate security controls are implemented</li>
+      <li>Reviewing and responding to security incidents</li>
+      <li>Annual review and update of security policies</li>
+      <li>Compliance with third-party security requirements (Plaid, Stripe)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>4. Security Controls</h2>
+    <h3>4.1 Access Control</h3>
+    <ul>
+      <li>Multi-factor authentication (MFA) required for all administrative access</li>
+      <li>Principle of least privilege applied to all system access</li>
+      <li>User authentication required for all application access (Firebase Auth)</li>
+      <li>Regular review of access permissions</li>
+    </ul>
+    <h3>4.2 Data Protection</h3>
+    <ul>
+      <li>All data encrypted in transit using TLS 1.2 or higher</li>
+      <li>All data encrypted at rest using AES-256 encryption</li>
+      <li>Sensitive credentials stored securely (environment variables, not in code)</li>
+      <li>No storage of bank login credentials (handled by Plaid)</li>
+    </ul>
+    <h3>4.3 Infrastructure Security</h3>
+    <ul>
+      <li>Use of managed cloud services with SOC 2 Type II certification (Google Cloud, Vercel)</li>
+      <li>Serverless architecture eliminates server management vulnerabilities</li>
+      <li>Automatic security patching by platform providers</li>
+      <li>HTTPS enforced on all endpoints</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>5. Third-Party Security</h2>
+    <p>All third-party services are evaluated for security compliance:</p>
+    <ul>
+      <li><strong>Plaid</strong> - SOC 2 Type II certified, handles bank authentication</li>
+      <li><strong>Stripe</strong> - PCI DSS Level 1 certified, handles payment processing</li>
+      <li><strong>Firebase/Google Cloud</strong> - SOC 2, ISO 27001 certified, hosts application data</li>
+      <li><strong>Vercel</strong> - SOC 2 Type II certified, hosts application frontend</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>6. Incident Response</h2>
+    <p>In the event of a security incident:</p>
+    <ul>
+      <li><strong>Identification:</strong> Monitor for and identify potential security incidents</li>
+      <li><strong>Containment:</strong> Immediately isolate affected systems</li>
+      <li><strong>Notification:</strong> Notify affected users and relevant parties (Plaid, authorities) as required</li>
+      <li><strong>Recovery:</strong> Restore systems and data from secure backups</li>
+      <li><strong>Lessons Learned:</strong> Document incident and implement preventive measures</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>7. Acceptable Use</h2>
+    <ul>
+      <li>Production systems accessed only from secure, updated devices</li>
+      <li>No sharing of credentials or access tokens</li>
+      <li>Secure disposal of any printed sensitive information</li>
+      <li>Immediate reporting of any suspected security issues</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>8. Policy Review</h2>
+    <p>This policy shall be:</p>
+    <ul>
+      <li>Reviewed and updated annually, at minimum</li>
+      <li>Updated when significant changes occur to systems or processes</li>
+      <li>Updated when required by regulatory or contractual changes</li>
+    </ul>
+    <p><strong>Next Review Date:</strong> December 15, 2025</p>
+  </div>
+
+  <div class="section">
+    <h2>9. Contact</h2>
+    <p>For security concerns or questions about this policy:</p>
+    <p>Email: <strong>security@keelfinances.com</strong></p>
+  </div>
+
+  <div class="signature-block">
+    <h3>Policy Approval</h3>
+    <p>This Information Security Policy has been reviewed and approved by:</p>
+    <div class="signature-line"></div>
+    <p><strong>Antonio Monroy</strong><br>Founder, Keel<br>Date: December 15, 2024</p>
+  </div>
+
+  <div class="footer">
+    <p>© 2024 Keel (Monroy Enterprises). All rights reserved.</p>
+    <p>Document Version: 1.0 | Classification: Internal</p>
+  </div>
+</body>
+</html>
+
