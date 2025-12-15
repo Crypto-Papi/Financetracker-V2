@@ -2,135 +2,151 @@ import { useEffect, useRef, useState } from 'react'
 
 /**
  * Modular Diagram Component - Stripe-style flowing pipes animation
+ * Uses SVG stroke-dasharray animation technique for flowing effect
  */
 function ModularDiagram() {
-  const [activeModule, setActiveModule] = useState('payments')
+  const svgRef = useRef(null)
+  const [hoveredModule, setHoveredModule] = useState(null)
 
+  useEffect(() => {
+    if (!svgRef.current) return
+
+    // Animate all paths using stroke-dasharray technique
+    const paths = svgRef.current.querySelectorAll('.flow-path')
+    paths.forEach((path) => {
+      const length = path.getTotalLength()
+
+      // Set up the starting positions
+      path.style.strokeDasharray = `${length} ${length}`
+      path.style.strokeDashoffset = length
+
+      // Trigger layout
+      path.getBoundingClientRect()
+
+      // Animate
+      path.style.transition = 'none'
+      path.style.strokeDashoffset = '0'
+
+      // Continuous animation
+      const animate = () => {
+        path.style.transition = 'none'
+        path.style.strokeDashoffset = length
+        path.getBoundingClientRect()
+        path.style.transition = `stroke-dashoffset ${2 + Math.random()}s linear`
+        path.style.strokeDashoffset = '0'
+      }
+
+      animate()
+      const interval = setInterval(animate, 2500)
+
+      return () => clearInterval(interval)
+    })
+  }, [])
+
+  // Module positions - organized in a logical flow
   const modules = [
-    { id: 'connect', label: 'Connect', icon: '🔗', position: { top: '15%', left: '25%' } },
-    { id: 'billing', label: 'Billing', icon: '💳', position: { top: '15%', left: '55%' } },
-    { id: 'reporting', label: 'Reporting', icon: '📊', position: { top: '15%', right: '10%' } },
-    { id: 'payments', label: 'Payments', icon: '▶️', position: { top: '40%', left: '50%', transform: 'translateX(-50%)' }, highlight: true },
-    { id: 'checkout', label: 'Checkout', icon: '🛒', position: { top: '30%', left: '10%' } },
-    { id: 'terminal', label: 'Terminal', icon: '💻', position: { top: '60%', left: '50%', transform: 'translateX(-50%)' } },
-    { id: 'invoicing', label: 'Invoicing', icon: '📄', position: { bottom: '15%', left: '15%' } },
-    { id: 'revenue', label: 'Revenue', icon: '📈', position: { bottom: '15%', right: '35%' } },
-    { id: 'tax', label: 'Tax', icon: '🧾', position: { top: '30%', right: '15%' } },
-    { id: 'identity', label: 'Identity', icon: '🔐', position: { bottom: '15%', right: '10%' } },
-    { id: 'radar', label: 'Radar', icon: '🎯', position: { bottom: '30%', left: '35%' } },
+    // Top row - Input methods
+    { id: 'checkout', label: 'Checkout', icon: '🛒', x: 80, y: 80 },
+    { id: 'connect', label: 'Connect', icon: '🔗', x: 280, y: 60 },
+    { id: 'billing', label: 'Billing', icon: '💳', x: 420, y: 80 },
+    { id: 'reporting', label: 'Reporting', icon: '📊', x: 560, y: 60 },
+
+    // Center - Core payment processing
+    { id: 'payments', label: 'Payments', icon: '▶️', x: 300, y: 220, highlight: true },
+
+    // Right side
+    { id: 'tax', label: 'Tax', icon: '🧾', x: 520, y: 200 },
+
+    // Bottom row - Output/Management
+    { id: 'terminal', label: 'Terminal', icon: '💻', x: 300, y: 380 },
+    { id: 'invoicing', label: 'Invoicing', icon: '📄', x: 100, y: 420 },
+    { id: 'radar', label: 'Radar', icon: '🎯', x: 200, y: 480 },
+    { id: 'revenue', label: 'Revenue', icon: '📈', x: 400, y: 480 },
+    { id: 'identity', label: 'Identity', icon: '🔐', x: 520, y: 420 },
+  ]
+
+  // Define meaningful connections (parent -> child relationships)
+  const connections = [
+    // Input methods flow into Payments
+    { from: 'checkout', to: 'payments', curve: 'M 140 100 Q 200 140 300 220' },
+    { from: 'connect', to: 'payments', curve: 'M 320 100 Q 310 160 300 220' },
+    { from: 'billing', to: 'payments', curve: 'M 450 120 Q 380 160 340 220' },
+    { from: 'reporting', to: 'payments', curve: 'M 580 100 Q 450 140 340 220' },
+
+    // Payments connects to Tax
+    { from: 'payments', to: 'tax', curve: 'M 360 240 Q 440 220 520 220' },
+
+    // Payments flows down to Terminal
+    { from: 'payments', to: 'terminal', curve: 'M 300 260 L 300 380' },
+
+    // Terminal distributes to output services
+    { from: 'terminal', to: 'invoicing', curve: 'M 280 400 Q 200 410 140 440' },
+    { from: 'terminal', to: 'radar', curve: 'M 290 420 Q 250 450 240 480' },
+    { from: 'terminal', to: 'revenue', curve: 'M 310 420 Q 350 450 400 480' },
+    { from: 'terminal', to: 'identity', curve: 'M 320 400 Q 420 410 520 440' },
   ]
 
   return (
-    <div className="relative w-full h-full">
-      {/* SVG for flowing pipes/connections */}
-      <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
+    <div className="relative w-full h-full flex items-center justify-center">
+      <svg
+        ref={svgRef}
+        className="absolute inset-0"
+        viewBox="0 0 640 560"
+        style={{ width: '100%', height: '100%' }}
+      >
         <defs>
-          {/* Gradient for pipes */}
-          <linearGradient id="pipeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style={{ stopColor: '#635bff', stopOpacity: 0.3 }} />
-            <stop offset="50%" style={{ stopColor: '#00d4ff', stopOpacity: 0.6 }} />
-            <stop offset="100%" style={{ stopColor: '#635bff', stopOpacity: 0.3 }} />
-          </linearGradient>
-
-          {/* Animated gradient for flow effect */}
+          {/* Gradient for the flowing effect */}
           <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style={{ stopColor: '#635bff', stopOpacity: 0 }}>
-              <animate attributeName="offset" values="0;1" dur="2s" repeatCount="indefinite" />
-            </stop>
-            <stop offset="50%" style={{ stopColor: '#00d4ff', stopOpacity: 1 }}>
-              <animate attributeName="offset" values="0.5;1.5" dur="2s" repeatCount="indefinite" />
-            </stop>
-            <stop offset="100%" style={{ stopColor: '#635bff', stopOpacity: 0 }}>
-              <animate attributeName="offset" values="1;2" dur="2s" repeatCount="indefinite" />
-            </stop>
+            <stop offset="0%" stopColor="#635bff" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#00d4ff" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#635bff" stopOpacity="0.2" />
           </linearGradient>
         </defs>
 
-        {/* Connections from Payments (center) to other modules */}
-        {/* Top connections */}
-        <path d="M 50% 40% L 50% 30% L 25% 20%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3s" repeatCount="indefinite" />
-        </path>
-        <path d="M 50% 40% L 50% 25%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.5s" repeatCount="indefinite" />
-        </path>
-        <path d="M 50% 40% L 50% 30% L 75% 20%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.2s" repeatCount="indefinite" />
-        </path>
-
-        {/* Side connections */}
-        <path d="M 50% 40% L 30% 40% L 15% 35%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.8s" repeatCount="indefinite" />
-        </path>
-        <path d="M 50% 40% L 70% 40% L 85% 35%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.5s" repeatCount="indefinite" />
-        </path>
-
-        {/* Bottom connections */}
-        <path d="M 50% 40% L 50% 60%" stroke="url(#pipeGradient)" strokeWidth="3" fill="none" opacity="0.6">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2s" repeatCount="indefinite" />
-        </path>
-        <path d="M 50% 60% L 30% 70% L 20% 80%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.3s" repeatCount="indefinite" />
-        </path>
-        <path d="M 50% 60% L 40% 75%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.7s" repeatCount="indefinite" />
-        </path>
-        <path d="M 50% 60% L 70% 75%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3.1s" repeatCount="indefinite" />
-        </path>
-        <path d="M 50% 60% L 80% 80%" stroke="url(#pipeGradient)" strokeWidth="2" fill="none" opacity="0.4">
-          <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2.9s" repeatCount="indefinite" />
-        </path>
+        {/* Draw connections */}
+        {connections.map((conn, i) => (
+          <path
+            key={i}
+            className="flow-path"
+            d={conn.curve}
+            stroke="url(#flowGradient)"
+            strokeWidth="3"
+            fill="none"
+            opacity={hoveredModule === conn.from || hoveredModule === conn.to ? 1 : 0.4}
+            style={{ transition: 'opacity 0.3s' }}
+          />
+        ))}
       </svg>
 
       {/* Module boxes */}
       {modules.map((module) => (
         <div
           key={module.id}
-          className={`absolute cursor-pointer transition-all duration-300 ${
-            module.highlight ? 'z-20' : 'z-10'
-          }`}
-          style={module.position}
-          onMouseEnter={() => setActiveModule(module.id)}
+          className="absolute"
+          style={{
+            left: `${module.x}px`,
+            top: `${module.y}px`,
+            transform: 'translate(-50%, -50%)',
+          }}
+          onMouseEnter={() => setHoveredModule(module.id)}
+          onMouseLeave={() => setHoveredModule(null)}
         >
           <div
             className={`
-              relative group
+              relative cursor-pointer transition-all duration-300
               ${module.highlight
-                ? 'bg-gradient-to-br from-[#635bff] to-[#7c3aed] text-white shadow-xl scale-110'
-                : 'bg-white border border-gray-200 text-gray-700 hover:border-[#635bff] hover:shadow-lg'
+                ? 'bg-gradient-to-br from-[#635bff] to-[#7c3aed] text-white shadow-2xl'
+                : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#635bff] hover:shadow-xl'
               }
-              rounded-xl px-4 py-3 flex items-center gap-2 transition-all duration-300
-              ${activeModule === module.id ? 'scale-110 shadow-2xl' : ''}
+              rounded-xl px-4 py-2.5 flex items-center gap-2
+              ${hoveredModule === module.id ? 'scale-110 shadow-2xl z-50' : 'z-10'}
             `}
           >
-            <span className="text-lg">{module.icon}</span>
+            <span className="text-base">{module.icon}</span>
             <span className="font-semibold text-sm whitespace-nowrap">{module.label}</span>
-
-            {/* Pulse effect for highlighted module */}
-            {module.highlight && (
-              <div className="absolute inset-0 rounded-xl bg-[#635bff] opacity-0 group-hover:opacity-20 animate-pulse"></div>
-            )}
           </div>
         </div>
       ))}
-
-      {/* Flowing particles on pipes */}
-      <div className="absolute inset-0 pointer-events-none">
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-2 h-2 bg-[#00d4ff] rounded-full opacity-60 animate-flow"
-            style={{
-              top: `${40 + Math.sin(i) * 20}%`,
-              left: `${50 + Math.cos(i) * 30}%`,
-              animationDelay: `${i * 0.3}s`,
-              animationDuration: `${2 + i * 0.2}s`,
-            }}
-          />
-        ))}
-      </div>
     </div>
   )
 }
@@ -332,15 +348,15 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
       </section>
 
       {/* Modular Solutions Section - Stripe Style with Flowing Pipes */}
-      <section className="relative py-32 px-6 bg-[#f6f9fc] overflow-hidden">
+      <section className="relative py-20 px-6 bg-[#f6f9fc] overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Text Content */}
-            <div>
+            <div className="lg:pr-8">
               <p className="text-[#635bff] font-semibold text-sm uppercase tracking-wide mb-4">
                 Modular solutions
               </p>
-              <h2 className="text-4xl md:text-5xl font-bold text-[#0a2540] mb-6">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#0a2540] mb-6 leading-tight">
                 A fully integrated suite of financial and payments products
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
@@ -349,7 +365,7 @@ export function LandingPage({ onGetStarted, onSignIn, onNavigate }) {
             </div>
 
             {/* Right Side - Animated Modular Diagram */}
-            <div className="relative h-[600px] flex items-center justify-center">
+            <div className="relative w-full" style={{ minHeight: '560px' }}>
               <ModularDiagram />
             </div>
           </div>
